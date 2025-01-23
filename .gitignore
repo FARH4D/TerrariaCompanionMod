@@ -1,0 +1,4 @@
+# Normally created by C# Visual Studio add-ons.
+*.sln
+
+obj/

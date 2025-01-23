@@ -1,0 +1,3 @@
+displayName = Terraria Companion App
+author = FARH4D
+version = 0.1
