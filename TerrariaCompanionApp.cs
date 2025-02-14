@@ -17,6 +17,7 @@ using Newtonsoft.Json;
 using Terraria.GameContent.Bestiary;
 using Terraria.GameContent.ObjectInteractions;
 using Terraria.GameContent.ItemDropRules;
+using Terraria.Localization;
 
 namespace TerrariaCompanionApp
 {
@@ -26,24 +27,24 @@ public class TerrariaCompanionApp : Mod
     private Texture2D texture;
     private bool _serverRunning = false;
     public Dictionary<int, List<Recipe>> recipe_dict;
+    private String current_page;
 
     public override void Load()
     {
         base.Load();
 
     }
-
+    
     public override void Unload()
     {
         base.Unload();
-        StopServer();
     }
 
     public override void PostSetupContent()
     {
         base.PostSetupContent();
         //getTexture();
-        StartServer();
+        
     }
 
     private void StartServer()
@@ -92,8 +93,8 @@ public class TerrariaCompanionApp : Mod
         var bossList = bossChecklistMod.Call("GetBossInfoDictionary", this) as Dictionary<string, Dictionary<string, object>>;
 
         List<string> boss_list_names = new List<string>();
-        string texture_path;
-        string downloadsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+        // string texture_path;
+        // string downloadsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
         
 
 
@@ -117,60 +118,77 @@ public class TerrariaCompanionApp : Mod
             entryInfo.TryGetValue("key", out object keyObj);
             bossName = keyObj as string;    
             boss_list_names.Add(bossName);
+            
 
-            if (entryInfo.TryGetValue("npcIDs", out object npcIDsObj) && npcIDsObj is List<int> npcIDList)
-            {
-                if (npcIDList != null || npcIDList.Count != 0)
-                {
+            Main.NewText(bossName);
+
+            if (entryInfo.TryGetValue("spawnInfo", out object spawninfoObj) && spawninfoObj is Func<LocalizedText> spawnInfoFunc) {
+                LocalizedText spawnInfoText = spawnInfoFunc();
+                string spawnInfoString = spawnInfoText.Value;
+                Main.NewText(spawnInfoString);
+            }
+
+            // if (entryInfo.TryGetValue("dropRateInfo", out object dropRatesObj) && dropRatesObj is List<DropRateInfo> dropRates){
+                
+            //     foreach (DropRateInfo drop_item in dropRates) {
+            //         Main.NewText(drop_item.itemId);
+            //         Main.NewText(drop_item.dropRate);
+            //     }
+            // }
+
+            // if (entryInfo.TryGetValue("npcIDs", out object npcIDsObj) && npcIDsObj is List<int> npcIDList)
+            // {
+            //     if (npcIDList != null || npcIDList.Count != 0)
+            //     {
                     
-                    foreach (int npcID in npcIDList)
-                    {
-                        if (npcID > NPCID.Count && npcID != 0) {
-                            texture_path = ModContent.GetModNPC(npcID).Texture;
-                            Main.NewText(ModContent.GetModNPC(npcID).FullName);
-                            Asset<Texture2D> textureAsset = ModContent.Request<Texture2D>(texture_path);
-                            Texture2D texture = textureAsset.Value;
-                            string filePath = Path.Combine(downloadsPath, $"npc{npcID}.png");
-                            int frameCount = Main.npcFrameCount[npcID]; // Get number of frames
-                            if (frameCount <= 0) frameCount = 1; // Ensure we don’t divide by 0
+            //         foreach (int npcID in npcIDList)
+            //         {
+            //             if (npcID > NPCID.Count && npcID != 0) {
+            //                 // texture_path = ModContent.GetModNPC(npcID).Texture;
+            //                 Main.NewText(ModContent.GetModNPC(npcID).FullName);
+            //                 // Asset<Texture2D> textureAsset = ModContent.Request<Texture2D>(texture_path);
+            //                 // Texture2D texture = textureAsset.Value;
+            //                 // string filePath = Path.Combine(downloadsPath, $"npc{npcID}.png");
+            //                 // int frameCount = Main.npcFrameCount[npcID]; // Get number of frames
+            //                 // if (frameCount <= 0) frameCount = 1; // Ensure we don’t divide by 0
 
-                            int frameWidth = texture.Width;
-                            int frameHeight = texture.Height / frameCount;
+            //                 // int frameWidth = texture.Width;
+            //                 // int frameHeight = texture.Height / frameCount;
 
-                            Texture2D firstFrameTexture = new Texture2D(Main.graphics.GraphicsDevice, frameWidth, frameHeight);
-                            Microsoft.Xna.Framework.Color[] fullPixels = new Microsoft.Xna.Framework.Color[texture.Width * texture.Height];
-                            texture.GetData(fullPixels);
+            //                 // Texture2D firstFrameTexture = new Texture2D(Main.graphics.GraphicsDevice, frameWidth, frameHeight);
+            //                 // Microsoft.Xna.Framework.Color[] fullPixels = new Microsoft.Xna.Framework.Color[texture.Width * texture.Height];
+            //                 // texture.GetData(fullPixels);
 
-                            Microsoft.Xna.Framework.Color[] framePixels = new Microsoft.Xna.Framework.Color[frameWidth * frameHeight];
-                            for (int y = 0; y < frameHeight; y++)
-                            {
-                                for (int x = 0; x < frameWidth; x++)
-                                {
-                                    framePixels[y * frameWidth + x] = fullPixels[y * frameWidth + x];
-                                }
-                            }
+            //                 // Microsoft.Xna.Framework.Color[] framePixels = new Microsoft.Xna.Framework.Color[frameWidth * frameHeight];
+            //                 // for (int y = 0; y < frameHeight; y++)
+            //                 // {
+            //                 //     for (int x = 0; x < frameWidth; x++)
+            //                 //     {
+            //                 //         framePixels[y * frameWidth + x] = fullPixels[y * frameWidth + x];
+            //                 //     }
+            //                 // }
 
-                            firstFrameTexture.SetData(framePixels);
+            //                 // firstFrameTexture.SetData(framePixels);
 
-                            using (MemoryStream ms = new MemoryStream())
-                            {
-                                firstFrameTexture.SaveAsPng(ms, firstFrameTexture.Width, firstFrameTexture.Height);
-                                File.WriteAllBytes(filePath, ms.ToArray());
+            //                 // using (MemoryStream ms = new MemoryStream())
+            //                 // {
+            //                 //     firstFrameTexture.SaveAsPng(ms, firstFrameTexture.Width, firstFrameTexture.Height);
+            //                 //     File.WriteAllBytes(filePath, ms.ToArray());
 
-                                Main.NewText($"First frame saved as {filePath}");
-                            }
-                            Main.NewText("yup");
+            //                 //     Main.NewText($"First frame saved as {filePath}");
+            //                 // }
+            //                 // Main.NewText("yup");
 
                             
-                            // SaveTextureToFile(textureAsset, filePath);
-                            // Main.NewText(texture_path);
-                            // Main.NewText("saved");
-                        }
-                    }
+            //                 // SaveTextureToFile(textureAsset, filePath);
+            //                 // Main.NewText(texture_path);
+            //                 // Main.NewText("saved");
+            //             }
+            //         }
                     
-                }
+            //     }
 
-            }
+            // }
 
         }
         });
