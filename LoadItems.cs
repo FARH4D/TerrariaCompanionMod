@@ -9,22 +9,34 @@ using Terraria;
 using Terraria.GameContent;
 using Terraria.ID;
 using Terraria.ModLoader;
+using System.Collections.Generic;
+using Newtonsoft.Json;
 
 
 public class LoadItems : ModSystem
 {
-    public override void OnModLoad()
+
+    private List<Dictionary<string, object>> _currentList;
+
+    public string LoadItemList(int max)
     {
-        // Perform graphics-related tasks on the main thread
+        _currentList = new List<Dictionary<string, object>>();
         
+        for (int i = 0; i < 50; i++){
+            var item = Main.recipe[i].createItem;
+            var itemDict = new Dictionary<string, object> // Create  dictionary for each item
+            {
+                {"name", item.Name},
+                {"id", item.type} // Item.type is the ID
+            };
+        
+            _currentList.Add(itemDict);
+
+        }
+
+        return JsonConvert.SerializeObject(_currentList);
+
     }
 
-
-    
-	// Your code here
-    public override void OnWorldLoad()
-    {
-        
-    }
     
 }

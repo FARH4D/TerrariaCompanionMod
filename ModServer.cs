@@ -30,6 +30,8 @@ public class ModServer : ModSystem
     private bool _running = false;
     private string _currentPage = "HOME";
 
+    private LoadItems _itemLoader;
+    
     private ModServer() { }
 
 
@@ -58,6 +60,7 @@ public class ModServer : ModSystem
 
     public void StartServer(int port = 12345)
     {
+        _itemLoader = new LoadItems();
         if (_running) return; // Prevent multiple starts
         _running = true;
 
@@ -84,12 +87,6 @@ public class ModServer : ModSystem
                     int bytesRead = _stream.Read(buffer, 0, buffer.Length);
                     string receivedMessage = Encoding.UTF8.GetString(buffer, 0, bytesRead).Trim();
 
-                    if (receivedMessage == "Connected to Terraria Companion App successfully.") {
-                        Main.NewText(receivedMessage);
-                        break;
-                    }
-                    
-
                     _currentPage = receivedMessage;
                 }
 
@@ -99,6 +96,7 @@ public class ModServer : ModSystem
 
                     // Send data to the client
                     string data = GetDataForPage(_currentPage);
+                    Main.NewText(data);
                     byte[] buffer = Encoding.UTF8.GetBytes(data + "\n");
                     _stream.Write(buffer, 0, buffer.Length);
                     _stream.Flush();
@@ -125,7 +123,7 @@ public class ModServer : ModSystem
     private string GetDataForPage(string page)
     {
         if (page == "HOME") return GetHomeData();
-        if (page == "RECIPES") return "Recipes List: Potion, Sword, Armor";
+        if (page == "RECIPES") return _itemLoader.LoadItemList(50);
         return "Unknown Page";
     }
 

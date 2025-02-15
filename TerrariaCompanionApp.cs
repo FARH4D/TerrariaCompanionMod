@@ -27,7 +27,6 @@ public class TerrariaCompanionApp : Mod
     private Texture2D texture;
     private bool _serverRunning = false;
     public Dictionary<int, List<Recipe>> recipe_dict;
-    private String current_page;
 
     public override void Load()
     {
