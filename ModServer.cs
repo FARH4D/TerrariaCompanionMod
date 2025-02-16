@@ -19,6 +19,7 @@ using Terraria.GameContent.ObjectInteractions;
 using Terraria.GameContent.ItemDropRules;
 using Terraria.Localization;
 using System.Threading;
+using System.Threading.Tasks;
 
 public class ModServer : ModSystem
 {
@@ -29,6 +30,8 @@ public class ModServer : ModSystem
     private Thread _listenerThread;
     private bool _running = false;
     private string _currentPage;
+    private int _currentNum;
+    private int _lastNum = 0;
 
     private LoadItems _itemLoader;
     
@@ -68,39 +71,67 @@ public class ModServer : ModSystem
         _server = new TcpListener(IPAddress.Any, port);
         _server.Start();
 
-        _listenerThread = new Thread(() =>
+        _listenerThread = new Thread(async () =>
         {
             while (_running)
             {
                 try {
 
-                if (_server.Pending()) // Check for new clients
-                {
-                    _client = _server.AcceptTcpClient();
-                    _stream = _client.GetStream();
-                    Main.NewText("Connected to Terraria Companion App!");
-                }
+                    if (_server.Pending()) // Check for new clients
+                    {
+                        _client = _server.AcceptTcpClient();
+                        _stream = _client.GetStream();
+                        Main.NewText("Connected to Terraria Companion App!");
+                    }
 
-                if (_client != null && _client.Connected && _stream.DataAvailable)
-                {
-                    
-                    byte[] buffer = new byte[1024];
-                    int bytesRead = _stream.Read(buffer, 0, buffer.Length);
-                    string receivedMessage = Encoding.UTF8.GetString(buffer, 0, bytesRead).Trim();
+                    if (_client != null && _client.Connected && _stream.DataAvailable)
+                    {
+                        
+                        byte[] buffer = new byte[1024];
+                        int bytesRead = _stream.Read(buffer, 0, buffer.Length);
+                        string receivedMessage = Encoding.UTF8.GetString(buffer, 0, bytesRead).Trim();
 
-                    _currentPage = receivedMessage;
-                }
+                        string page_name = receivedMessage;
+                        int item_num = 30;
+
+                        if (receivedMessage.Contains(":")){
+                            Main.NewText(receivedMessage);
+                            string[] parts = receivedMessage.Split(":", 2);
+                            page_name = parts[0];
+                            item_num = int.Parse(parts[1]);
+                            Main.NewText(item_num);
+                        }
+
+                        _currentPage = page_name;
+                        _currentNum = item_num;
+                        
+                    }
 
 
-                if (_client != null && _client.Connected)
-                {
+                    if (_client != null && _client.Connected)
+                    {
 
-                    // Send data to the client
-                    string data = GetDataForPage(_currentPage);
-                    byte[] buffer = Encoding.UTF8.GetBytes(data + "\n");
-                    _stream.Write(buffer, 0, buffer.Length);
-                    _stream.Flush();
-                }
+                        if (_currentPage == "HOME")
+                        {
+                            Main.NewText("home");
+                            // Send data to the client
+                            string data = await GetDataForPage(_currentPage, _currentNum);
+                            byte[] buffer = Encoding.UTF8.GetBytes(data + "\n");
+                            _stream.Write(buffer, 0, buffer.Length);
+                            _stream.Flush();
+                        }
+                        else if (_currentPage == "RECIPES")
+                        {
+                            if (_currentNum != _lastNum) {
+                                Main.NewText("done?");
+                                _lastNum = _currentNum;
+                                string data = await GetDataForPage(_currentPage, _currentNum);
+                                byte[] buffer = Encoding.UTF8.GetBytes(data + "\n");
+                                _stream.Write(buffer, 0, buffer.Length);
+                                _stream.Flush();
+                            }
+                        }
+                    }
                 }
                 catch (Exception e) {
                     StopServer();
@@ -120,10 +151,10 @@ public class ModServer : ModSystem
         _client?.Close();
     }
 
-    private string GetDataForPage(string page)
+    public async Task<string> GetDataForPage(string page, int current_num)
     {
         if (page == "HOME") return GetHomeData();
-        if (page == "RECIPES") return _itemLoader.LoadItemList(50);
+        if (page == "RECIPES") return await _itemLoader.LoadItemList(current_num); // Await the async method
         return "Unknown Page";
     }
 

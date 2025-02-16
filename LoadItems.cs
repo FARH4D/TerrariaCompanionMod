@@ -17,48 +17,69 @@ using System.Threading;
 
 public class LoadItems : ModSystem
 {
-
     private List<Dictionary<string, object>> _currentList;
 
-    public string LoadItemList(int max)
+    public async Task<string> LoadItemList(int max)
     {
         _currentList = new List<Dictionary<string, object>>();
         int remainingTasks = 30;
-     
-        for (int i = 0; i < 30; i++){
-            
-            var item = Main.recipe[i].createItem;
-            
+        int min = 0;
 
+        if (max != 0)
+        {
+            min = max - 30;
+        }
 
-            Item new_item = new Item();
-            new_item.SetDefaults(item.type);
+        List<Task> tasks = new List<Task>();
 
-            Asset<Texture2D> currentTexture;
+        for (int i = min; i < max; i++)
+        {
+            int index = i;
 
-            Main.QueueMainThreadAction(() => {
-                Main.NewText("test");
-                if (new_item.ModItem == null) {
-                    currentTexture = ModContent.Request<Texture2D>($"Terraria/Images/Item_{new_item.type}");
-                } else {
-                    currentTexture = ModContent.Request<Texture2D>(new_item.ModItem.Texture);
+            tasks.Add(Task.Run(async () =>
+            {
+                var item = Main.recipe[index]?.createItem;
+                Main.NewText($"Processing item {index}");
+
+                if (item == null)
+                {
+                    Main.NewText($"Failed to load item {index}");
+                    return;
                 }
 
-                while(!currentTexture.IsLoaded){
-                    Thread.Yield();
-                }
-                
-                string base64Image = ConvertTextureToBase64(currentTexture.Value);
+                Item new_item = new Item();
+                new_item.SetDefaults(item.type);
 
-                var itemDict = new Dictionary<string, object> // Create  dictionary for each item
+                var currentTexture = await Task.Run(() =>
+                {
+                    return ModContent.Request<Texture2D>(new_item.ModItem?.Texture ?? $"Terraria/Images/Item_{new_item.type}");
+                });
+
+                while (!currentTexture.IsLoaded)
+                {
+                    await Task.Delay(10);
+                }
+
+                string base64Image = null;
+                await Task.Run(() =>
+                {
+                    Main.QueueMainThreadAction(() =>
+                    {
+                        base64Image = ConvertTextureToBase64(currentTexture.Value);
+                    });
+                });
+
+                while (base64Image == null)
+                {
+                    await Task.Delay(10);
+                }
+
+                var itemDict = new Dictionary<string, object>
                 {
                     {"name", item.Name},
-                    {"id", item.type}, // Item.type is the ID
+                    {"id", item.type},
                     {"image", base64Image}
                 };
-
-                
-                Main.NewText("test2");
 
                 lock (_currentList)
                 {
@@ -66,14 +87,12 @@ public class LoadItems : ModSystem
                 }
 
                 Interlocked.Decrement(ref remainingTasks);
-            });
+            }));
         }
 
-        while (remainingTasks > 0)
-        {
-            Thread.Sleep(10); // Allow other tasks to execute
-        }
-        
+        // Wait for all tasks to finish
+        await Task.WhenAll(tasks);
+
         return JsonConvert.SerializeObject(_currentList);
     }
 
@@ -85,6 +104,32 @@ public class LoadItems : ModSystem
         return Convert.ToBase64String(ms.ToArray());
     }
 }
+
+
+    private void SaveTextureToFile(Asset<Texture2D> textureAsset, string fileName)
+    {
+        try
+        {
+            // Extract the actual Texture2D from the Asset<Texture2D>
+            Texture2D texture = textureAsset.Value;
+
+            // Get a memory stream to save the PNG to
+            using (MemoryStream ms = new MemoryStream())
+            {
+                // Save the texture as PNG to the memory stream
+                texture.SaveAsPng(ms, texture.Width, texture.Height);
+
+                // Write the PNG data to a file
+                File.WriteAllBytes(fileName, ms.ToArray());
+
+                Main.NewText($"Texture saved as {fileName}");
+            }
+        }
+        catch (Exception e)
+        {
+            Main.NewText($"Error saving texture: {e.Message}");
+        }
+    }
 
     
 }
