@@ -211,24 +211,6 @@ public class TerrariaCompanionApp : Mod
                 Main.QueueMainThreadAction(() => {
                     
 
-                    // Main.NewText(player.buffType[0]);
-
-                        
-
-                // Main.NewText(Main.item[5673].Name);
-                // if (Main.item[5673].)
-
-                // foreach (var mod in ModLoader.Mods) {
-
-                //     for (int i = 0; i < Recipe.numRecipes; i++){
-
-                //         Main.recipe[i].createItem.Name
-
-                //     }
-
-                // }
-
-
                 // string filePath = @"E:\Downloads\playerthing.png";
                 // Asset<Texture2D> playerhair = ModContent.Request<Texture2D>("Terraria/Images/Player_Hair_" + ((int)player.hair + 1));
 

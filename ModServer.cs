@@ -28,7 +28,7 @@ public class ModServer : ModSystem
     private NetworkStream _stream;
     private Thread _listenerThread;
     private bool _running = false;
-    private string _currentPage = "HOME";
+    private string _currentPage;
 
     private LoadItems _itemLoader;
     
@@ -37,6 +37,7 @@ public class ModServer : ModSystem
 
     public override void OnWorldLoad()
     {
+        _currentPage = "HOME";
         StartServer();
     }
 
@@ -77,7 +78,7 @@ public class ModServer : ModSystem
                 {
                     _client = _server.AcceptTcpClient();
                     _stream = _client.GetStream();
-                    Console.WriteLine("Client connected!");
+                    Main.NewText("Connected to Terraria Companion App!");
                 }
 
                 if (_client != null && _client.Connected && _stream.DataAvailable)
@@ -96,7 +97,6 @@ public class ModServer : ModSystem
 
                     // Send data to the client
                     string data = GetDataForPage(_currentPage);
-                    Main.NewText(data);
                     byte[] buffer = Encoding.UTF8.GetBytes(data + "\n");
                     _stream.Write(buffer, 0, buffer.Length);
                     _stream.Flush();
@@ -107,7 +107,7 @@ public class ModServer : ModSystem
                     break;
                 }
 
-                Thread.Sleep(1000); // Prevent CPU overuse
+                Thread.Sleep(1000);
             }
         });
         _listenerThread.Start();
