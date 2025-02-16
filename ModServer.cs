@@ -49,7 +49,6 @@ public class ModServer : ModSystem
         StopServer();
     }
 
-
     public static ModServer Instance
     {
         get
@@ -99,7 +98,7 @@ public class ModServer : ModSystem
                             string[] parts = receivedMessage.Split(":", 2);
                             page_name = parts[0];
                             item_num = int.Parse(parts[1]);
-                            Main.NewText(item_num);
+                            
                         }
 
                         _currentPage = page_name;
@@ -113,7 +112,6 @@ public class ModServer : ModSystem
 
                         if (_currentPage == "HOME")
                         {
-                            Main.NewText("home");
                             // Send data to the client
                             string data = await GetDataForPage(_currentPage, _currentNum);
                             byte[] buffer = Encoding.UTF8.GetBytes(data + "\n");
@@ -123,7 +121,6 @@ public class ModServer : ModSystem
                         else if (_currentPage == "RECIPES")
                         {
                             if (_currentNum != _lastNum) {
-                                Main.NewText("done?");
                                 _lastNum = _currentNum;
                                 string data = await GetDataForPage(_currentPage, _currentNum);
                                 byte[] buffer = Encoding.UTF8.GetBytes(data + "\n");
