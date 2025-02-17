@@ -32,6 +32,7 @@ public class ModServer : ModSystem
     private string _currentPage;
     private int _currentNum;
     private int _lastNum = 0;
+    private string _category = "all";
 
     private LoadItems _itemLoader;
     
@@ -92,17 +93,21 @@ public class ModServer : ModSystem
 
                         string page_name = receivedMessage;
                         int item_num = 30;
+                        string category = "all";
 
                         if (receivedMessage.Contains(":")){
                             Main.NewText(receivedMessage);
-                            string[] parts = receivedMessage.Split(":", 2);
+                            string[] parts = receivedMessage.Split(":", 3);
                             page_name = parts[0];
                             item_num = int.Parse(parts[1]);
+                            category = parts[2];
+                            
                             
                         }
 
                         _currentPage = page_name;
                         _currentNum = item_num;
+                        _category = category;
                         
                     }
 
@@ -113,7 +118,7 @@ public class ModServer : ModSystem
                         if (_currentPage == "HOME")
                         {
                             // Send data to the client
-                            string data = await GetDataForPage(_currentPage, _currentNum);
+                            string data = await GetDataForPage();
                             byte[] buffer = Encoding.UTF8.GetBytes(data + "\n");
                             _stream.Write(buffer, 0, buffer.Length);
                             _stream.Flush();
@@ -122,7 +127,7 @@ public class ModServer : ModSystem
                         {
                             if (_currentNum != _lastNum) {
                                 _lastNum = _currentNum;
-                                string data = await GetDataForPage(_currentPage, _currentNum);
+                                string data = await GetDataForPage();
                                 byte[] buffer = Encoding.UTF8.GetBytes(data + "\n");
                                 _stream.Write(buffer, 0, buffer.Length);
                                 _stream.Flush();
@@ -148,37 +153,29 @@ public class ModServer : ModSystem
         _client?.Close();
     }
 
-    public async Task<string> GetDataForPage(string page, int current_num)
+    public async Task<string> GetDataForPage()
     {
-        if (page == "HOME") return GetHomeData();
-        if (page == "RECIPES") return await _itemLoader.LoadItemList(current_num); // Await the async method
+        if (_currentPage == "HOME") return GetHomeData();
+        if (_currentPage == "RECIPES") return await _itemLoader.LoadItemList(_currentNum, _category); // Await the async method
         return "Unknown Page";
     }
 
     private string GetHomeData()
-        {
-            
-            List<string> playerNames = new List<string>();
-            
-
-            foreach (var playername in Main.ActivePlayers) {
-
+    {
+        List<string> playerNames = new List<string>();
+    
+        foreach (var playername in Main.ActivePlayers) {
             playerNames.Add(playername.name);
+        }
 
-            }
+        Player player = Main.LocalPlayer; // Get the local player
 
-
-
-            Player player = Main.LocalPlayer; // Get the local player
-
-            var data = new {
+        var data = new {
             health = new {current = player.statLife, max = player.statLifeMax},
             mana = new {current = player.statMana, max = player.statManaMax},
             player_list = playerNames
         };
 
-            return JsonConvert.SerializeObject(data);
-        }
-
-
+        return JsonConvert.SerializeObject(data);
+    }
 }
