@@ -23,6 +23,7 @@ namespace TerrariaCompanionApp
 {
 public class TerrariaCompanionApp : Mod
 {
+    public static TerrariaCompanionApp Instance;
     private TcpListener _server;
     private Texture2D texture;
     private bool _serverRunning = false;
@@ -30,6 +31,8 @@ public class TerrariaCompanionApp : Mod
 
     public override void Load()
     {
+        Instance = this;  // Now Instance is properly assigned
+        ItemStorage.Init(this);
         base.Load();
 
     }

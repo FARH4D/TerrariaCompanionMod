@@ -16,16 +16,43 @@ using System.Threading;
 using System.Linq;
 
 
+namespace TerrariaCompanionApp
+{
 public class LoadItems : ModSystem
 {
-    private List<Dictionary<string, object>> _currentList;
-    private Dictionary<string, List<Dictionary<string, object>>> _categorisedItems;    
+    private List<Dictionary<string, object>> _currentList; 
+    private bool hasLoaded = false;
+    private HashSet<int> itemsToProcess; // Tracks items that haven't had their textures converted to a bitmap yet
+    
 
-    public override void OnWorldLoad()
+
+    public override void Load()
+        {
+            ItemStorage.Init(Mod);
+            itemsToProcess = new HashSet<int>();
+        }
+
+        public override void PostSetupContent()
+        {
+            LoadAllItemTextures("vanilla");
+        }
+
+        public override void PostUpdatePlayers()
+        {
+            if (!Main.gameMenu && !hasLoaded) // Ensure it's only executed once
+            {
+                hasLoaded = true;
+                Main.QueueMainThreadAction(() =>
+                {
+                    LoadAllItemTextures("modded");
+                });
+            }
+        }
+
+    public void LoadAllItemTextures(string type)
     {   
-        var storage = ItemStorage.Instance;
-
         var mainList = new Dictionary<int, Dictionary<string, object>>();
+        var storage = ItemStorage.Instance;
 
         try
         {
@@ -35,8 +62,7 @@ public class LoadItems : ModSystem
                     continue;
 
                 var item = Main.recipe[i].createItem;
-
-                Mod.Logger.Info($"Found Item {i}: {item.Name}");
+                itemsToProcess.Add(item.type); // Track items to process
 
                 Main.QueueMainThreadAction(() =>
                 {
@@ -45,72 +71,77 @@ public class LoadItems : ModSystem
                         Item new_item = new Item();
                         new_item.SetDefaults(item.type);
 
-                        var texturePath = new_item.ModItem?.Texture ?? $"Images/Item_{new_item.type}";
+                        Texture2D currentTexture;
 
-                        if (!ModContent.HasAsset(texturePath))
-                            return; // Skip item if texture is missing
+                        if (new_item.ModItem == null && type == "vanilla") // Vanilla item
+                        {
+                            if (TextureAssets.Item[new_item.type] == null)
+                            {
+                                Mod.Logger.Warn($"Texture not found for vanilla item: {new_item.Name}");
+                                return;
+                            }
+                            Main.instance.LoadItem(new_item.type);
+                            currentTexture = TextureAssets.Item[new_item.type].Value;
+                        }
+                        else if (type == "modded" && new_item.ModItem != null) 
+                        {   
+                            var texturePath = new_item.ModItem.Texture;
 
-                        Texture2D currentTexture = ModContent.Request<Texture2D>(texturePath).Value;
+                            if (!ModContent.HasAsset(texturePath))
+                            {
+                                Mod.Logger.Warn($"Missing texture for modded item: {new_item.Name}");
+                                return; // Skip item if texture is missing
+                            }
+                            currentTexture = ModContent.Request<Texture2D>(texturePath).Value;
+                        }
+                        else
+                        {
+                            return;
+                        }
+
                         string base64Image = ConvertTextureToBase64(currentTexture);
 
                         var itemDict = new Dictionary<string, object>
                         {
-                            {"name", item.Name},
-                            {"id", item.type},
+                            {"name", new_item.Name},
+                            {"id", new_item.type},
                             {"image", base64Image}
                         };
 
                         mainList[item.type] = itemDict;
+
                         storage.CategoriseItem(itemDict, new_item);
                     }
                     catch (Exception innerEx)
                     {
                         Mod.Logger.Warn($"Error processing item texture: {innerEx}");
                     }
+
+                    itemsToProcess.Remove(item.type); // Mark this item as processed
+
                 });
             }
         }
         catch (Exception ex)
         {
-            Mod.Logger.Warn($"Unexpected error in OnWorldLoad: {ex}");
+            Mod.Logger.Warn($"Unexpected error in LoadAllItemTextures: {ex}");
         }
-
         storage.SetMainList(mainList);
     }
 
-
-
     public override void OnWorldUnload()
-{
-    var storage = ItemStorage.Instance;
-
-    try
     {
-        // Clear main list and remove any references to items or images
-        storage.ClearMainList();
+        var storage = ItemStorage.Instance;
 
-
-        Mod.Logger.Info("World unloaded and resources cleaned up.");
-    }
-    catch (Exception ex)
-    {
-        Mod.Logger.Warn($"Error cleaning up on world unload: {ex}");
-    }
-}
-
-    
-
-    public void categoriseItem(Dictionary<string, object> itemDict, Item new_item){
-        if (new_item.damage > 0)
+        try
+        {   
+            storage.ClearMainList(); // Clears the main list to free up some memory
+            hasLoaded = false;
+            Mod.Logger.Info("World unloaded and lists cleaned up.");
+        }
+        catch (Exception ex)
         {
-            if (new_item.CountsAsClass(DamageClass.Melee) && !(new_item.pick > 0 || new_item.axe > 0 || new_item.hammer > 0))
-                _categorisedItems["Melee"].Add(itemDict);
-            else if (new_item.CountsAsClass(DamageClass.Ranged) && !(new_item.pick > 0 || new_item.axe > 0 || new_item.hammer > 0))
-                _categorisedItems["Ranged"].Add(itemDict);
-            else if (new_item.CountsAsClass(DamageClass.Magic) && !(new_item.pick > 0 || new_item.axe > 0 || new_item.hammer > 0))
-                _categorisedItems["Mage"].Add(itemDict);
-            else if (new_item.CountsAsClass(DamageClass.Summon) && !(new_item.pick > 0 || new_item.axe > 0 || new_item.hammer > 0))
-                _categorisedItems["Summoner"].Add(itemDict);
+            Mod.Logger.Warn($"Error cleaning up on world unload: {ex}");
         }
     }
 
@@ -135,12 +166,16 @@ public class LoadItems : ModSystem
             else
             {
                 var categorisedItems = storage.GetCategorisedItems();
-                if (!categorisedItems.ContainsKey(category))
+
+                if (categorisedItems == null ){
+                    return "Error: Empty List!";
+                }
+
+                if (!categorisedItems.ContainsKey(category.Trim()))
                     return "Error: Category not found!";
 
-                listToUse = categorisedItems[category];
+                listToUse = categorisedItems[category.Trim()];
             }
-            Main.NewText("jmmm");
             _currentList = listToUse.Skip(Math.Max(0, listToUse.Count - max)).Take(30).ToList();
             return JsonConvert.SerializeObject(_currentList);
         });
@@ -154,4 +189,5 @@ public class LoadItems : ModSystem
             return Convert.ToBase64String(ms.ToArray());
         }
     }
+}
 }

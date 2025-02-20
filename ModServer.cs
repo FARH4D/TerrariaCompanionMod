@@ -34,10 +34,9 @@ public class ModServer : ModSystem
     private int _lastNum = 0;
     private string _category = "all";
 
-    private LoadItems _itemLoader;
+    private TerrariaCompanionApp.LoadItems _itemLoader;
     
     private ModServer() { }
-
 
     public override void OnWorldLoad()
     {
@@ -64,7 +63,7 @@ public class ModServer : ModSystem
 
     public void StartServer(int port = 12345)
     {
-        _itemLoader = new LoadItems();
+        _itemLoader = new TerrariaCompanionApp.LoadItems();
         if (_running) return; // Prevent multiple starts
         _running = true;
 
@@ -96,7 +95,6 @@ public class ModServer : ModSystem
                         string category = "all";
 
                         if (receivedMessage.Contains(":")){
-                            Main.NewText(receivedMessage);
                             string[] parts = receivedMessage.Split(":", 3);
                             page_name = parts[0];
                             item_num = int.Parse(parts[1]);
@@ -110,7 +108,6 @@ public class ModServer : ModSystem
                         _category = category;
                         
                     }
-
 
                     if (_client != null && _client.Connected)
                     {
@@ -156,7 +153,9 @@ public class ModServer : ModSystem
     public async Task<string> GetDataForPage()
     {
         if (_currentPage == "HOME") return GetHomeData();
-        if (_currentPage == "RECIPES") return await _itemLoader.LoadItemList(_currentNum, _category); // Await the async method
+        if (_currentPage == "RECIPES") {
+            return await _itemLoader.LoadItemList(_currentNum, _category.ToString()); 
+            }// Await the async method
         return "Unknown Page";
     }
 
