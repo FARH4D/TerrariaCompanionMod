@@ -93,13 +93,13 @@ public class ModServer : ModSystem
                         string page_name = receivedMessage;
                         int item_num = 30;
                         string category = "all";
+                        Main.NewText(receivedMessage);
 
                         if (receivedMessage.Contains(":")){
                             string[] parts = receivedMessage.Split(":", 3);
                             page_name = parts[0];
                             item_num = int.Parse(parts[1]);
                             category = parts[2];
-                            
                             
                         }
 
@@ -115,12 +115,23 @@ public class ModServer : ModSystem
                         if (_currentPage == "HOME")
                         {
                             // Send data to the client
-                            string data = await GetDataForPage();
+                            string data = GetHomeData();
                             byte[] buffer = Encoding.UTF8.GetBytes(data + "\n");
                             _stream.Write(buffer, 0, buffer.Length);
                             _stream.Flush();
                         }
                         else if (_currentPage == "RECIPES")
+                        {
+                            _stream.Flush();
+                            if (_currentNum != _lastNum) {
+                                _lastNum = _currentNum;
+                                string data = await GetDataForPage();
+                                byte[] buffer = Encoding.UTF8.GetBytes(data + "\n");
+                                _stream.Write(buffer, 0, buffer.Length);
+                                _stream.Flush();
+                            }
+                        }
+                        else if (_currentPage == "BEASTIARY")
                         {
                             if (_currentNum != _lastNum) {
                                 _lastNum = _currentNum;
@@ -151,7 +162,7 @@ public class ModServer : ModSystem
     }
 
     public async Task<string> GetDataForPage()
-    {
+    {   
         if (_currentPage == "HOME") return GetHomeData();
         if (_currentPage == "RECIPES") {
             return await _itemLoader.LoadItemList(_currentNum, _category.ToString()); 
