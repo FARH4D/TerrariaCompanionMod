@@ -35,6 +35,7 @@ public class ModServer : ModSystem
     private string _category = "all";
 
     private TerrariaCompanionApp.LoadItems _itemLoader;
+    private TerrariaCompanionApp.LoadNpcs _npcLoader;
     
     private ModServer() { }
 
@@ -64,6 +65,7 @@ public class ModServer : ModSystem
     public void StartServer(int port = 12345)
     {
         _itemLoader = new TerrariaCompanionApp.LoadItems();
+        _npcLoader = new TerrariaCompanionApp.LoadNpcs();
         if (_running) return; // Prevent multiple starts
         _running = true;
 
@@ -166,7 +168,10 @@ public class ModServer : ModSystem
         if (_currentPage == "HOME") return GetHomeData();
         if (_currentPage == "RECIPES") {
             return await _itemLoader.LoadItemList(_currentNum, _category.ToString()); 
-            }// Await the async method
+            }
+        if (_currentPage == "BEASTIARY") {
+            return await _npcLoader.LoadNpcList(_currentNum, _category.ToString()); 
+            }
         return "Unknown Page";
     }
 

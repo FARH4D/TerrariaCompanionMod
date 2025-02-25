@@ -1,1 +1,1 @@
-Modify this file with a description of your mod.
+A Mod for tModLoader that allows you to connect to the Terraria Companion App!
