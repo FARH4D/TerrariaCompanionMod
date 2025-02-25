@@ -58,11 +58,8 @@ namespace TerrariaCompanionApp
             if (new_item.damage > 0)
             {
                 if (new_item.CountsAsClass(DamageClass.Melee) && !(new_item.pick > 0 || new_item.axe > 0 || new_item.hammer > 0)) {
-                    _mod.Logger.Info("found melee");
                     _categorisedItems["melee"].Add(itemDict);
-                    _mod.Logger.Info($"Total melee items: {_categorisedItems["melee"].Count}");
                 }
-                    
                 else if (new_item.CountsAsClass(DamageClass.Ranged) && !(new_item.pick > 0 || new_item.axe > 0 || new_item.hammer > 0))
                     _categorisedItems["ranged"].Add(itemDict);
                 else if (new_item.CountsAsClass(DamageClass.Magic) && !(new_item.pick > 0 || new_item.axe > 0 || new_item.hammer > 0))

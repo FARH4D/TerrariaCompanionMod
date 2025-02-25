@@ -94,7 +94,6 @@ namespace TerrariaCompanionApp
                                 {"id", npc.type},
                                 {"image", base64Image}
                             };
-                            Mod.Logger.Info(npc.FullName);
 
                             mainList[npc.type] = npcDict;
                         }
@@ -150,7 +149,7 @@ namespace TerrariaCompanionApp
                 listToUse = _mainList.Values.ToList();
 
 
-                _currentList = listToUse.Skip(Math.Max(0, listToUse.Count - max)).Take(30).ToList();
+                _currentList = listToUse.Skip(Math.Max(0, max - 30)).Take(30).ToList();
                 return JsonConvert.SerializeObject(_currentList);
             });
         }

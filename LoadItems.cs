@@ -106,7 +106,12 @@ namespace TerrariaCompanionApp
                                 {"image", base64Image}
                             };
 
+                            Mod.Logger.Info(new_item.Name);
+                            Mod.Logger.Info(new_item.type);
+
                             mainList[item.type] = itemDict;
+
+                            Mod.Logger.Info($"main list has " + mainList.Count);
 
                             storage.CategoriseItem(itemDict, new_item);
                         }
@@ -154,7 +159,7 @@ namespace TerrariaCompanionApp
                 {
                     return "Error: No items found!";
                 }
-
+                Main.NewText(_mainList.Count);
                 List<Dictionary<string, object>> listToUse;
 
                 if (category == "all")
@@ -174,7 +179,9 @@ namespace TerrariaCompanionApp
 
                     listToUse = categorisedItems[category.Trim()];
                 }
-                _currentList = listToUse.Skip(Math.Max(0, listToUse.Count - max)).Take(30).ToList();
+
+                // listToUse = listToUse.OrderBy(item => item["id"]).ToList();
+                _currentList = listToUse.Skip(Math.Max(0, max - 30)).Take(30).ToList();
                 return JsonConvert.SerializeObject(_currentList);
             });
         }
