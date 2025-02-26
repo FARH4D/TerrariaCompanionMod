@@ -69,7 +69,7 @@ namespace TerrariaCompanionApp
                         {
                             Texture2D currentTexture;
 
-                            Mod.Logger.Info($"found {npc.type}");
+                            //Mod.Logger.Info($"found {npc.type}");
                             
                             Main.instance.LoadNPC(npc.type);
 

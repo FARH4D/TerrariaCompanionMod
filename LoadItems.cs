@@ -22,7 +22,7 @@ namespace TerrariaCompanionApp
     {
         private List<Dictionary<string, object>> _currentList; 
         private bool hasLoaded = false;
-        private HashSet<int> itemsToProcess; // Tracks items that haven't had their textures converted to a bitmap yet        
+        private HashSet<int> itemsToProcess;
 
         public override void Load()
         {
@@ -32,47 +32,54 @@ namespace TerrariaCompanionApp
 
         public override void PostSetupContent()
         {
-            LoadAllItemTextures("vanilla");
+            LoadVanillaTextures();
         }
 
         public override void PostUpdatePlayers()
         {
-            if (!Main.gameMenu && !hasLoaded) // Ensure it's only executed once
+            if (!Main.gameMenu && !hasLoaded) // Ensure its only executed once
             {
                 hasLoaded = true;
                 Main.QueueMainThreadAction(() =>
                 {
-                    LoadAllItemTextures("modded");
+                    LoadModdedTextures();
                 });
             }
         }
 
-        public void LoadAllItemTextures(string type)
+        public void LoadVanillaTextures()
         {   
-            var mainList = new Dictionary<int, Dictionary<string, object>>();
+            var mainList = new List<Dictionary<string, object>>();
             var storage = ItemStorage.Instance;
 
-            try
+            List<Task> tasks = new List<Task>();
+
+            Main.QueueMainThreadAction(() =>
             {
-                for (int i = 0; i < Main.recipe.Length; i++)
+                try
                 {
-                    if (Main.recipe[i] == null || Main.recipe[i].createItem == null)
-                        continue;
-
-                    var item = Main.recipe[i].createItem;
-                    itemsToProcess.Add(item.type); // Track items to process
-
-                    Main.QueueMainThreadAction(() =>
+                    for (int i = 0; i < Main.recipe.Length; i++)
                     {
-                        try
+                        if (Main.recipe[i] == null || Main.recipe[i].createItem == null)
+                            continue;
+
+                        var item = Main.recipe[i].createItem;
+                        itemsToProcess.Add(item.type);
+                        
+                        if (item.type == ItemID.None)
                         {
-                            Item new_item = new Item();
-                            new_item.SetDefaults(item.type);
+                            continue;
+                        }
 
-                            Texture2D currentTexture;
-
-                            if (new_item.ModItem == null && type == "vanilla") // Vanilla item
+                        tasks.Add(Task.Run(() =>
+                        {   
+                            try
                             {
+                                Item new_item = new Item();
+                                new_item.SetDefaults(item.type);
+
+                                Texture2D currentTexture = null;
+
                                 if (TextureAssets.Item[new_item.type] == null)
                                 {
                                     Mod.Logger.Warn($"Texture not found for vanilla item: {new_item.Name}");
@@ -80,56 +87,157 @@ namespace TerrariaCompanionApp
                                 }
                                 Main.instance.LoadItem(new_item.type);
                                 currentTexture = TextureAssets.Item[new_item.type].Value;
+
+                                Main.QueueMainThreadAction(() =>
+                                {
+                                    try
+                                    {
+                                        if (currentTexture != null)
+                                        {
+                                            string base64Image = ConvertTextureToBase64(currentTexture);
+
+                                            var itemDict = new Dictionary<string, object>
+                                            {
+                                                {"name", new_item.Name},
+                                                {"id", new_item.type},
+                                                {"image", base64Image}
+                                            };
+
+                                            Mod.Logger.Info($"Adding item: {new_item.Name} (ID: {new_item.type})");
+
+                                            mainList.Add(itemDict);
+
+                                            Mod.Logger.Info($"Main list has {mainList.Count} items");
+
+                                            storage.CategoriseItem(itemDict, new_item);
+                                        }
+                                    }
+                                    catch (Exception innerEx)
+                                    {
+                                        Mod.Logger.Warn($"Error processing item texture on main thread: {innerEx}");
+                                    }
+                                    finally
+                                    {
+                                        itemsToProcess.Remove(item.type);
+                                    }
+                                });
                             }
-                            else if (type == "modded" && new_item.ModItem != null) 
-                            {   
+                            catch (Exception innerEx)
+                            {
+                                Mod.Logger.Warn($"Error processing item texture: {innerEx}");
+                            }
+                        }));
+                    }
+
+                    // Wait for all tasks to complete
+                    Task.WhenAll(tasks).ContinueWith(_ =>
+                    {
+                        storage.SetVanillaList(mainList);
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Mod.Logger.Warn($"Unexpected error in LoadVanillaTextures: {ex}");
+                }
+            });
+        }
+
+        public void LoadModdedTextures()
+        {   
+            var mainList = new List<Dictionary<string, object>>();
+            var storage = ItemStorage.Instance;
+
+            List<Task> tasks = new List<Task>();
+
+            Main.QueueMainThreadAction(() =>
+            {
+                try
+                {
+                    for (int i = 0; i < Main.recipe.Length; i++)
+                    {
+                        if (Main.recipe[i] == null || Main.recipe[i].createItem == null)
+                            continue;
+
+                        var item = Main.recipe[i].createItem;
+                        itemsToProcess.Add(item.type);
+                        
+                        if (item.type == ItemID.None)
+                        {
+                            continue;
+                        }
+
+                        tasks.Add(Task.Run(() =>
+                        {   
+                            try
+                            {
+                                Item new_item = new Item();
+                                new_item.SetDefaults(item.type);
+
+                                Texture2D currentTexture = null;
+
                                 var texturePath = new_item.ModItem.Texture;
 
                                 if (!ModContent.HasAsset(texturePath))
                                 {
                                     Mod.Logger.Warn($"Missing texture for modded item: {new_item.Name}");
-                                    return; // Skip item if texture is missing
+                                    return;
                                 }
                                 currentTexture = ModContent.Request<Texture2D>(texturePath).Value;
+
+                                Main.QueueMainThreadAction(() =>
+                                {
+                                    try
+                                    {
+                                        if (currentTexture != null)
+                                        {
+                                            string base64Image = ConvertTextureToBase64(currentTexture);
+
+                                            var itemDict = new Dictionary<string, object>
+                                            {
+                                                {"name", new_item.Name},
+                                                {"id", new_item.type},
+                                                {"image", base64Image}
+                                            };
+
+                                            Mod.Logger.Info($"Adding item: {new_item.Name} (ID: {new_item.type})");
+
+                                            mainList.Add(itemDict);
+
+                                            Mod.Logger.Info($"Main list has {mainList.Count} items");
+
+                                            storage.CategoriseItem(itemDict, new_item);
+                                        }
+                                    }
+                                    catch (Exception innerEx)
+                                    {
+                                        Mod.Logger.Warn($"Error processing item texture on main thread: {innerEx}");
+                                    }
+                                    finally
+                                    {
+                                        itemsToProcess.Remove(item.type);
+                                    }
+                                });
                             }
-                            else
+                            catch (Exception innerEx)
                             {
-                                return;
+                                Mod.Logger.Warn($"Error processing item texture: {innerEx}");
                             }
+                        }));
+                    }
 
-                            string base64Image = ConvertTextureToBase64(currentTexture);
-
-                            var itemDict = new Dictionary<string, object>
-                            {
-                                {"name", new_item.Name},
-                                {"id", new_item.type},
-                                {"image", base64Image}
-                            };
-
-                            Mod.Logger.Info(new_item.Name);
-                            Mod.Logger.Info(new_item.type);
-
-                            mainList[item.type] = itemDict;
-
-                            Mod.Logger.Info($"main list has " + mainList.Count);
-
-                            storage.CategoriseItem(itemDict, new_item);
-                        }
-                        catch (Exception innerEx)
-                        {
-                            Mod.Logger.Warn($"Error processing item texture: {innerEx}");
-                        }
-
-                        itemsToProcess.Remove(item.type);
-
+                    Task.WhenAll(tasks).ContinueWith(_ =>
+                    {
+                        storage.SetModdedList(mainList);
+                        var tempList = storage.getVanillaList();
+                        tempList.AddRange(storage.getModdedList());
+                        storage.SetTotalList(tempList);
                     });
                 }
-            }
-            catch (Exception ex)
-            {
-                Mod.Logger.Warn($"Unexpected error in LoadAllItemTextures: {ex}");
-            }
-            storage.SetMainList(mainList);
+                catch (Exception ex)
+                {
+                    Mod.Logger.Warn($"Unexpected error in LoadVanillaTextures: {ex}");
+                }
+            });
         }
 
         public override void OnWorldUnload()
@@ -153,7 +261,7 @@ namespace TerrariaCompanionApp
             return await Task.Run(() =>
             {
                 var storage = ItemStorage.Instance;
-                var _mainList = storage.GetMainList();
+                var _mainList = storage.GetTotalList();
 
                 if (_mainList == null || _mainList.Count == 0)
                 {
@@ -164,7 +272,7 @@ namespace TerrariaCompanionApp
 
                 if (category == "all")
                 {
-                    listToUse = _mainList.Values.ToList();
+                    listToUse = _mainList.ToList();
                 }
                 else
                 {

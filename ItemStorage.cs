@@ -16,7 +16,9 @@ namespace TerrariaCompanionApp
                 return _instance;
             }
         }
-        private Dictionary<int, Dictionary<string, object>> _mainList;
+        private List<Dictionary<string, object>> _totalList;
+        private List<Dictionary<string, object>> _vanillaList;
+        private List<Dictionary<string, object>> _moddedList;
         private Dictionary<string, List<Dictionary<string, object>>> _categorisedItems;
         private Mod _mod;
     
@@ -24,7 +26,9 @@ namespace TerrariaCompanionApp
         {
             
             _mod = mod;
-            _mainList = new Dictionary<int, Dictionary<string, object>>();
+            _totalList = new List<Dictionary<string, object>>();
+            _vanillaList = new List<Dictionary<string, object>>();
+            _moddedList = new List<Dictionary<string, object>>();
             _categorisedItems = new Dictionary<string, List<Dictionary<string, object>>>
             {
                 {"melee", new List<Dictionary<string, object>>()},
@@ -47,11 +51,15 @@ namespace TerrariaCompanionApp
             };
         }
 
-        public Dictionary<int, Dictionary<string, object>> GetMainList() => _mainList;
+        public List<Dictionary<string, object>> GetTotalList() => _totalList;
+        public List<Dictionary<string, object>> getVanillaList() => _vanillaList;
+        public List<Dictionary<string, object>> getModdedList() => _moddedList;
 
         public Dictionary<string, List<Dictionary<string, object>>> GetCategorisedItems() => _categorisedItems;
 
-        public void SetMainList(Dictionary<int, Dictionary<string, object>> newList) => _mainList = newList;
+        public void SetTotalList(List<Dictionary<string, object>> newList) => _totalList = newList;
+        public void SetVanillaList(List<Dictionary<string, object>> newList) => _vanillaList = newList;
+        public void SetModdedList(List<Dictionary<string, object>> newList) => _moddedList = newList;
 
         public void CategoriseItem(Dictionary<string, object> itemDict, Item new_item)
         {
@@ -71,7 +79,6 @@ namespace TerrariaCompanionApp
 
         public void ClearMainList()
         {
-            _mainList.Clear();
             _categorisedItems = new Dictionary<string, List<Dictionary<string, object>>> {
                 {"melee", new List<Dictionary<string, object>>()},
                 {"ranged", new List<Dictionary<string, object>>()},
