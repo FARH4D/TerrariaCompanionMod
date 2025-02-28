@@ -34,8 +34,8 @@ public class ModServer : ModSystem
     private int _lastNum = 0;
     private string _category = "all";
 
-    private TerrariaCompanionApp.LoadItems _itemLoader;
-    private TerrariaCompanionApp.LoadNpcs _npcLoader;
+    private TerrariaCompanionMod.LoadItems _itemLoader;
+    private TerrariaCompanionMod.LoadNpcs _npcLoader;
     
     private ModServer() { }
 
@@ -64,8 +64,8 @@ public class ModServer : ModSystem
 
     public void StartServer(int port = 12345)
     {
-        _itemLoader = new TerrariaCompanionApp.LoadItems();
-        _npcLoader = new TerrariaCompanionApp.LoadNpcs();
+        _itemLoader = new TerrariaCompanionMod.LoadItems();
+        _npcLoader = new TerrariaCompanionMod.LoadNpcs();
         if (_running) return; // Prevent multiple starts
         _running = true;
 

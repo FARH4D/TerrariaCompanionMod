@@ -16,7 +16,7 @@ using System.Threading;
 using System.Linq;
 
 
-namespace TerrariaCompanionApp
+namespace TerrariaCompanionMod
 {
     public class LoadItems : ModSystem
     {

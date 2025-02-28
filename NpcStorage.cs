@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using Terraria;
 using Terraria.ModLoader;
 
-namespace TerrariaCompanionApp
+namespace TerrariaCompanionMod
 {
     public class NpcStorage
     {

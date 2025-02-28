@@ -19,11 +19,11 @@ using Terraria.GameContent.ObjectInteractions;
 using Terraria.GameContent.ItemDropRules;
 using Terraria.Localization;
 
-namespace TerrariaCompanionApp
+namespace TerrariaCompanionMod
 {
-public class TerrariaCompanionApp : Mod
+public class TerrariaCompanionMod : Mod
 {
-    public static TerrariaCompanionApp Instance;
+    public static TerrariaCompanionMod Instance;
     private TcpListener _server;
     private Texture2D texture;
     private bool _serverRunning = false;

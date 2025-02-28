@@ -15,7 +15,7 @@ using System.Threading.Tasks;
 using System.Threading;
 using System.Linq;
 
-namespace TerrariaCompanionApp
+namespace TerrariaCompanionMod
 {
     public class LoadNpcs : ModSystem
     {
