@@ -23,6 +23,7 @@ namespace TerrariaCompanionMod
         private List<Dictionary<string, object>> _currentList; 
         private bool hasLoaded = false;
         private HashSet<int> itemsToProcess;
+        private bool compiledTotal = false;
 
         public override void Load()
         {
@@ -42,9 +43,10 @@ namespace TerrariaCompanionMod
                 hasLoaded = true;
                 Main.QueueMainThreadAction(() =>
                 {   
-                    var storage = ItemStorage.Instance;
                     LoadTextures("modded");
-                    storage.SetTotalList();
+
+                    var storage = ItemStorage.Instance;
+                    storage.SetTotalList(); // Move this inside the callback
                 });
             }
         }
@@ -123,6 +125,7 @@ namespace TerrariaCompanionMod
                                 };
 
                                 mainList.Add(itemDict);
+                                Mod.Logger.Info($"categorising item {new_item.Name}");
                                 storage.CategoriseItem(itemDict, new_item);
                             }
 
@@ -136,7 +139,7 @@ namespace TerrariaCompanionMod
                     // Wait for all tasks to complete
                     Task.WhenAll(tasks).ContinueWith(_ =>
                     {
-                        Mod.Logger.Info($"All {type} items loaded");
+                        storage.SetTotalList();
                     });
                 }
                 catch (Exception ex)
@@ -167,6 +170,12 @@ namespace TerrariaCompanionMod
             return await Task.Run(() =>
             {
                 var storage = ItemStorage.Instance;
+                if (!compiledTotal)
+                {
+                    storage.SetTotalList();
+                    compiledTotal = true;
+                }
+                
                 var _mainList = storage.GetTotalList();
 
                 if (_mainList == null || _mainList.Count == 0)
