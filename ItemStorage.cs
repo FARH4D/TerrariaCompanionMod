@@ -57,9 +57,14 @@ namespace TerrariaCompanionMod
 
         public Dictionary<string, List<Dictionary<string, object>>> GetCategorisedItems() => _categorisedItems;
 
-        public void SetTotalList(List<Dictionary<string, object>> newList) => _totalList = newList;
-        public void SetVanillaList(List<Dictionary<string, object>> newList) => _vanillaList = newList;
-        public void SetModdedList(List<Dictionary<string, object>> newList) => _moddedList = newList;
+        public void SetTotalList()
+        {
+            _totalList.Clear();
+            foreach (var category in _categorisedItems.Values)
+            {
+                _totalList.AddRange(category);
+            }
+        }
 
         public void CategoriseItem(Dictionary<string, object> itemDict, Item new_item)
         {
