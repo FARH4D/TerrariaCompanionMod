@@ -29,11 +29,6 @@ namespace TerrariaCompanionMod
             npcsToProcess = new HashSet<int>();
         }
 
-        // public override void PostSetupContent()
-        // {
-        //     LoadAllNpcTextures();
-        // }
-
         public override void PostUpdatePlayers()
         {
             if (!Main.gameMenu && !hasLoaded) // Ensure it's only executed once
@@ -68,8 +63,6 @@ namespace TerrariaCompanionMod
                         try
                         {
                             Texture2D currentTexture;
-
-                            //Mod.Logger.Info($"found {npc.type}");
                             
                             Main.instance.LoadNPC(npc.type);
 

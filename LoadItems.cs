@@ -88,7 +88,6 @@ namespace TerrariaCompanionMod
 
                                 if (new_item.ModItem == null && type == "vanilla") // Vanilla item
                                 {
-                                    Mod.Logger.Info($"vanilla item {new_item.Name}");
                                     if (TextureAssets.Item[new_item.type] == null)
                                     {
                                         Mod.Logger.Warn($"Texture not found for vanilla item: {new_item.Name}");
@@ -100,8 +99,6 @@ namespace TerrariaCompanionMod
                                 else if (type == "modded" && new_item.ModItem != null) 
                                 {   
                                     var texturePath = new_item.ModItem.Texture;
-
-                                    Mod.Logger.Info($"modded item {new_item.Name}");
 
                                     if (!ModContent.HasAsset(texturePath))
                                     {
@@ -125,7 +122,6 @@ namespace TerrariaCompanionMod
                                 };
 
                                 mainList.Add(itemDict);
-                                Mod.Logger.Info($"categorising item {new_item.Name}");
                                 storage.CategoriseItem(itemDict, new_item);
                             }
 
