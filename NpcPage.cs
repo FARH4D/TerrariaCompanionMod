@@ -21,10 +21,15 @@ namespace TerrariaCompanionMod
     public class NpcPage : ModSystem
     {
 
+
+
+
+
         public void LoadData(int npcId)
         {
             NPC npc = new NPC();
             npc.SetDefaults(npcId);
+            
             
             List<IItemDropRule> dropRules = Main.ItemDropsDB.GetRulesForNPCID(npcId, false);
 
@@ -33,11 +38,15 @@ namespace TerrariaCompanionMod
                 List<DropRateInfo> dropInfo = new List<DropRateInfo>();
                 rule.ReportDroprates(dropInfo, new DropRateInfoChainFeed(1f)); // Extract actual item drop info
 
-                foreach (var info in dropInfo)
-                {
-                    Main.NewText($"Possible drop from {npc.FullName}: {info.itemId} ({Lang.GetItemNameValue(info.itemId)}) - Drop Rate: {info.dropRate * 100}%");
+                if (dropInfo.Count > 1) {
+                    foreach (var info in dropInfo)
+                    {
+                        Main.NewText($"Possible drop from {npc.FullName}: {info.itemId} ({Lang.GetItemNameValue(info.itemId)}) - Drop Rate: {info.dropRate * 100}%");
+                    }
                 }
             }
+            Main.NewText(npc.lifeMax);
+            Main.NewText(npc.defense);
         }
 
     }

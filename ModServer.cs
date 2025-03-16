@@ -26,6 +26,7 @@ public class ModServer : ModSystem
 
     private TerrariaCompanionMod.LoadItems _itemLoader;
     private TerrariaCompanionMod.LoadNpcs _npcLoader;
+    private TerrariaCompanionMod.NpcPage _npcPage;
     
     private ModServer() { }
 
@@ -54,8 +55,9 @@ public class ModServer : ModSystem
 
     public void StartServer(int port = 12345)
     {
-        _itemLoader = new TerrariaCompanionMod.LoadItems();
-        _npcLoader = new TerrariaCompanionMod.LoadNpcs();
+        _itemLoader = new LoadItems();
+        _npcLoader = new LoadNpcs();
+        _npcPage = new NpcPage();
         if (_running) return; // Prevent multiple starts
         _running = true;
 
@@ -133,6 +135,13 @@ public class ModServer : ModSystem
                                 _stream.Flush();
                             }
                         }
+                        else if (_currentPage == "BEASTIARYINFO")
+                        {
+                                string data = await GetDataForPage();
+                                byte[] buffer = Encoding.UTF8.GetBytes(data + "\n");
+                                _stream.Write(buffer, 0, buffer.Length);
+                                _stream.Flush();
+                        }
                     }
                 }
                 catch (Exception e) {
@@ -161,6 +170,11 @@ public class ModServer : ModSystem
             }
         if (_currentPage == "BEASTIARY") {
             return await _npcLoader.LoadNpcList(_currentNum, _category.ToString()); 
+            }
+        if (_currentPage == "BEASTIARYINFO") {
+            _npcPage.LoadData(_currentNum);
+            return GetHomeData();
+            // return await _npcPage.LoadData(_currentNum);
             }
         return "Unknown Page";
     }
