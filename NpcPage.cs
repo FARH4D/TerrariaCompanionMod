@@ -20,34 +20,88 @@ namespace TerrariaCompanionMod
 {
     public class NpcPage : ModSystem
     {
+        List<Dictionary<string, object>> drops;
 
-
-
-
-
-        public void LoadData(int npcId)
-        {
-            NPC npc = new NPC();
-            npc.SetDefaults(npcId);
-            
-            
-            List<IItemDropRule> dropRules = Main.ItemDropsDB.GetRulesForNPCID(npcId, false);
-
-            foreach (IItemDropRule rule in dropRules)
+        public async Task<string> LoadData(int npcId)
+        {  
+            return await Task.Run(() =>
             {
-                List<DropRateInfo> dropInfo = new List<DropRateInfo>();
-                rule.ReportDroprates(dropInfo, new DropRateInfoChainFeed(1f)); // Extract actual item drop info
+                NPC npc = new NPC();
+                npc.SetDefaults(npcId);
+                
+                List<IItemDropRule> dropRules = Main.ItemDropsDB.GetRulesForNPCID(npcId, false);
 
-                if (dropInfo.Count > 1) {
+                drops = new List<Dictionary<string, object>>();
+
+                List<Task> mainThreadTasks = new List<Task>();
+                foreach (IItemDropRule rule in dropRules)
+                {
+                    List<DropRateInfo> dropInfo = new List<DropRateInfo>();
+                    rule.ReportDroprates(dropInfo, new DropRateInfoChainFeed(1f)); // Extract actual item drop info
                     foreach (var info in dropInfo)
                     {
-                        Main.NewText($"Possible drop from {npc.FullName}: {info.itemId} ({Lang.GetItemNameValue(info.itemId)}) - Drop Rate: {info.dropRate * 100}%");
+                        if (dropInfo.Count > 1 && Main.GameMode != 0) { // The first drop rate is normally for normal mode, so this skips it if the user is in expert/master mode and shows that instead.
+                            continue;
+                        }
+                        
+                        var tcs = new TaskCompletionSource<bool>();
+                        Main.QueueMainThreadAction(() =>
+                        {   
+                            Item new_item = new Item();
+                            new_item.SetDefaults(info.itemId);
+                            Texture2D currentTexture = null;
+
+                            if (new_item.ModItem == null) {
+                                if (TextureAssets.Item[new_item.type] != null)
+                                {
+                                    Main.instance.LoadItem(new_item.type);
+                                    currentTexture = TextureAssets.Item[new_item.type].Value;    
+                                }           
+                            } else if (new_item.ModItem != null) {
+                                var texturePath = new_item.ModItem.Texture;
+                                if (ModContent.HasAsset(texturePath))
+                                {
+                                    currentTexture = ModContent.Request<Texture2D>(texturePath).Value;
+                                }
+                            }
+
+                            string base64Image = ConvertTextureToBase64(currentTexture);
+
+                            var itemDict = new Dictionary<string, object>
+                            {
+                                {"id", info.itemId},
+                                {"name", Lang.GetItemNameValue(info.itemId)},
+                                {"image", base64Image},
+                                {"droprate", info.dropRate * 100}
+                            };
+
+                            drops.Add(itemDict);
+                            tcs.SetResult(true);
+                        });
+                        mainThreadTasks.Add(tcs.Task);
                     }
                 }
-            }
-            Main.NewText(npc.lifeMax);
-            Main.NewText(npc.defense);
+                
+                Task.WaitAll(mainThreadTasks.ToArray());
+
+                var data = new {
+                    name = npc.FullName,
+                    hp = npc.lifeMax,
+                    defense = npc.defense,
+                    drop_list = drops
+                };
+ 
+                return JsonConvert.SerializeObject(data);
+            });
         }
 
+        private string ConvertTextureToBase64(Texture2D texture)
+        {
+            using (MemoryStream ms = new MemoryStream())
+            {
+                texture.SaveAsPng(ms, texture.Width, texture.Height);
+                return Convert.ToBase64String(ms.ToArray());
+            }
+        }
     }
 }
