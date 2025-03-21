@@ -48,7 +48,7 @@ namespace TerrariaCompanionMod
 
             try
             {
-                for (int i = 0; i < NPCLoader.NPCCount; i++)
+                for (int i = -65; i < NPCLoader.NPCCount; i++)
                 {
                     NPC npc = new NPC();
                     npc.SetDefaults(i);

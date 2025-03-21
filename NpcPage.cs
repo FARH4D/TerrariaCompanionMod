@@ -84,10 +84,23 @@ namespace TerrariaCompanionMod
                 
                 Task.WaitAll(mainThreadTasks.ToArray());
 
+                float npcKnockback = npc.knockBackResist;
+
+                string knockback_str = npcKnockback switch
+                {
+                    var x when x == 0 => "None",
+                    var x when x <= 0.3f => "Low",
+                    var x when x <= 0.7f => "Medium",
+                    _ => "High"
+                };
+                
+
                 var data = new {
                     name = npc.FullName,
                     hp = npc.lifeMax,
                     defense = npc.defense,
+                    attack = npc.damage,
+                    knockback = knockback_str,
                     drop_list = drops
                 };
  
