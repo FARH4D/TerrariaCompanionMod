@@ -87,7 +87,6 @@ public class ModServer : ModSystem
                         string page_name = receivedMessage;
                         int item_num = 30;
                         string category = "all";
-                        Main.NewText(receivedMessage);
 
                         if (receivedMessage.Contains(":")){
                             string[] parts = receivedMessage.Split(":", 3);

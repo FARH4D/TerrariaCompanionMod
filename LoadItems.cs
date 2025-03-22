@@ -62,15 +62,12 @@ namespace TerrariaCompanionMod
             {
                 try
                 {
-                    for (int i = 0; i < Main.recipe.Length; i++)
+                    for (int i = 0; i < ItemLoader.ItemCount; i++)
                     {
-                        if (Main.recipe[i] == null || Main.recipe[i].createItem == null)
-                            continue;
-
-                        var item = Main.recipe[i].createItem;
-                        itemsToProcess.Add(item.type);
+                        Item item = new Item();
+                        item.SetDefaults(i);
                         
-                        if (item.type == ItemID.None)
+                        if (item.type == ItemID.None || string.IsNullOrEmpty(item.Name))
                         {
                             continue;
                         }
@@ -151,7 +148,7 @@ namespace TerrariaCompanionMod
 
             try
             {   
-                storage.ClearMainList();
+                // storage.ClearMainList();
                 hasLoaded = false;
                 Mod.Logger.Info("World unloaded and lists cleaned up.");
             }
