@@ -142,22 +142,6 @@ namespace TerrariaCompanionMod
             });
         }
 
-        public override void OnWorldUnload()
-        {
-            var storage = ItemStorage.Instance;
-
-            try
-            {   
-                // storage.ClearMainList();
-                hasLoaded = false;
-                Mod.Logger.Info("World unloaded and lists cleaned up.");
-            }
-            catch (Exception ex)
-            {
-                Mod.Logger.Warn($"Error cleaning up on world unload: {ex}");
-            }
-        }
-
         public async Task<string> LoadItemList(int max, string category)
         {
             return await Task.Run(() =>
