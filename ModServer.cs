@@ -27,6 +27,7 @@ public class ModServer : ModSystem
     private LoadItems _itemLoader;
     private LoadNpcs _npcLoader;
     private NpcPage _npcPage;
+    private ItemPage _itemPage;
     
     private ModServer() { }
 
@@ -58,6 +59,8 @@ public class ModServer : ModSystem
         _itemLoader = new LoadItems();
         _npcLoader = new LoadNpcs();
         _npcPage = new NpcPage();
+        _itemPage = new ItemPage();
+
         if (_running) return; // Prevent multiple starts
         _running = true;
 
@@ -144,6 +147,16 @@ public class ModServer : ModSystem
                                 _stream.Flush();
                             }
                         }
+                        else if (_currentPage == "ITEMINFO")
+                        {
+                            if (_currentNum != _lastNum) {
+                                _lastNum = _currentNum;
+                                string data = await GetDataForPage();
+                                byte[] buffer = Encoding.UTF8.GetBytes(data + "\n");
+                                _stream.Write(buffer, 0, buffer.Length);
+                                _stream.Flush();
+                            }
+                        }
                     }
                 }
                 catch (Exception e) {
@@ -175,6 +188,9 @@ public class ModServer : ModSystem
             }
         if (_currentPage == "BEASTIARYINFO") {
             return await _npcPage.LoadData(_currentNum);
+            }
+        if (_currentPage == "ITEMINFO") {
+            return await _itemPage.LoadData(_currentNum);
             }
         return "Unknown Page";
     }

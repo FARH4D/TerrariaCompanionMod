@@ -2,3 +2,4 @@
 *.sln
 
 obj/
+bin/
