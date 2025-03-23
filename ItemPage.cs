@@ -21,6 +21,7 @@ namespace TerrariaCompanionMod
     public class ItemPage : ModSystem
     {
         List<List<Dictionary<string, object>>> allRecipes;
+        bool addCrafting = false;
 
         public async Task<string> LoadData(int itemId)
         {
@@ -86,7 +87,8 @@ namespace TerrariaCompanionMod
                                         {
                                             {"id", stationItemId},
                                             {"name", Lang.GetItemNameValue(stationItemId)},
-                                            {"image", base64Image}
+                                            {"image", base64Image},
+                                            {"quantity", 0}
                                         });
                                     });
                                 }
@@ -131,6 +133,15 @@ namespace TerrariaCompanionMod
                                         {"image", base64Image},
                                         {"quantity", new_item.stack}
                                     };
+                                    
+                                    if (!addCrafting)
+                                    {
+                                        foreach (Dictionary<string, object> station in craftingStations)
+                                        {
+                                            recipeList.Add(station);
+                                        }
+                                        addCrafting = true;
+                                    }
 
                                     recipeList.Add(itemDict);
                                     tcs.SetResult(true);
@@ -138,7 +149,6 @@ namespace TerrariaCompanionMod
                                 mainThreadTasks.Add(tcs.Task);
                             }
                         }
-                        allRecipes.Add(craftingStations);
                         allRecipes.Add(recipeList);
                     }
                 }
