@@ -21,12 +21,13 @@ namespace TerrariaCompanionMod
     public class ItemPage : ModSystem
     {
         List<List<Dictionary<string, object>>> allRecipes;
-        bool addCrafting = false;
+        bool addCrafting;
 
         public async Task<string> LoadData(int itemId)
         {
             return await Task.Run(() =>
             {
+                addCrafting = false;
                 Item item = new Item();
                 item.SetDefaults(itemId);
 
@@ -37,62 +38,59 @@ namespace TerrariaCompanionMod
                 for (int i = 0; i < Main.recipe.Length; i++)
                 {
                     Recipe recipe = Main.recipe[i];
-
+                    List<Dictionary<string, object>> craftingStations = new List<Dictionary<string, object>>();
                     if (recipe != null && recipe.createItem.type == itemId)
                     {
-                        // List of crafting stations needed for each recipe
-                        List<Dictionary<string, object>> craftingStations = new List<Dictionary<string, object>>();
-                        foreach (int tileId in recipe.requiredTile)
-                        {
-                            if (tileId != -1) // -1 means no station is needed
+                        if (recipe.requiredTile.Count == 0) {
+                            Main.QueueMainThreadAction(() =>
+                            {
+                                craftingStations.Add(new Dictionary<string, object>
+                                {
+                                    {"id", 1},
+                                    {"name", "None"},
+                                    {"image", ""},
+                                    {"quantity", 0}
+                                });
+                            });
+                        }
+                        else
+                        {   
+                            foreach (int tileId in recipe.requiredTile)
                             {
                                 int stationItemId = GetStationItemId(tileId);
-                                if (stationItemId == -1)
+                                Main.QueueMainThreadAction(() =>
                                 {
+                                    Texture2D currentTexture = null;
+                                    Item stationItem = new Item();
+                                    stationItem.SetDefaults(stationItemId);
+
+                                    if (stationItem.ModItem == null)
+                                    {
+                                        if (TextureAssets.Item[stationItem.type] != null)
+                                        {
+                                            Main.instance.LoadItem(stationItem.type);
+                                            currentTexture = TextureAssets.Item[stationItem.type].Value;
+                                        }
+                                    }
+                                    else if (stationItem.ModItem != null)
+                                    {
+                                        var texturePath = stationItem.ModItem.Texture;
+                                        if (ModContent.HasAsset(texturePath))
+                                        {
+                                            currentTexture = ModContent.Request<Texture2D>(texturePath).Value;
+                                        }
+                                    }
+
+                                    string base64Image = ConvertTextureToBase64(currentTexture);
+
                                     craftingStations.Add(new Dictionary<string, object>
                                     {
-                                        {"id", -1},
-                                        {"name", Lang.GetMapObjectName(tileId)},
-                                        {"image", null}
+                                        {"id", stationItemId},
+                                        {"name", Lang.GetItemNameValue(stationItemId)},
+                                        {"image", base64Image},
+                                        {"quantity", 0}
                                     });
-                                }
-                                else
-                                {   
-                                    Main.QueueMainThreadAction(() =>
-                                    {
-                                        Texture2D currentTexture = null;
-                                        Item stationItem = new Item();
-                                        stationItem.SetDefaults(stationItemId);
-
-                                        if (stationItem.ModItem == null)
-                                        {
-                                            if (TextureAssets.Item[stationItem.type] != null)
-                                            {
-                                                Main.instance.LoadItem(stationItem.type);
-                                                currentTexture = TextureAssets.Item[stationItem.type].Value;
-                                            }
-                                        }
-                                        else if (stationItem.ModItem != null)
-                                        {
-                                            var texturePath = stationItem.ModItem.Texture;
-                                            if (ModContent.HasAsset(texturePath))
-                                            {
-                                                currentTexture = ModContent.Request<Texture2D>(texturePath).Value;
-                                            }
-                                        }
-
-                                        string base64Image = ConvertTextureToBase64(currentTexture);
-
-                                        craftingStations.Add(new Dictionary<string, object>
-                                        {
-                                            {"id", stationItemId},
-                                            {"name", Lang.GetItemNameValue(stationItemId)},
-                                            {"image", base64Image},
-                                            {"quantity", 0}
-                                        });
-                                    });
-                                }
-
+                                });
                             }
                         }
 
@@ -126,14 +124,6 @@ namespace TerrariaCompanionMod
 
                                     string base64Image = ConvertTextureToBase64(currentTexture);
 
-                                    var itemDict = new Dictionary<string, object>
-                                    {
-                                        {"id", new_item.type},
-                                        {"name", Lang.GetItemNameValue(new_item.type)},
-                                        {"image", base64Image},
-                                        {"quantity", new_item.stack}
-                                    };
-                                    
                                     if (!addCrafting)
                                     {
                                         foreach (Dictionary<string, object> station in craftingStations)
@@ -143,7 +133,14 @@ namespace TerrariaCompanionMod
                                         addCrafting = true;
                                     }
 
-                                    recipeList.Add(itemDict);
+                                    recipeList.Add(new Dictionary<string, object>
+                                    {
+                                        {"id", new_item.type},
+                                        {"name", Lang.GetItemNameValue(new_item.type)},
+                                        {"image", base64Image},
+                                        {"quantity", new_item.stack}
+                                    });
+
                                     tcs.SetResult(true);
                                 });
                                 mainThreadTasks.Add(tcs.Task);
