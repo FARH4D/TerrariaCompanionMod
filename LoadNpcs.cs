@@ -21,6 +21,7 @@ namespace TerrariaCompanionMod
     {
         private List<Dictionary<string, object>> _currentList;
         private bool hasLoaded = false;
+        private string warning;
         private HashSet<int> npcsToProcess;
 
         public override void Load()
@@ -135,12 +136,14 @@ namespace TerrariaCompanionMod
                     return "Error: No NPCs found!";
                 }
 
-                Main.NewText(_mainList.Count);
-
                 List<Dictionary<string, object>> listToUse;
 
                 listToUse = _mainList.Values.ToList();
 
+                if (max > listToUse.Count) {
+                    warning = "MAX";
+                    return JsonConvert.SerializeObject(warning);
+                }
 
                 _currentList = listToUse.Skip(Math.Max(0, max - 30)).Take(30).ToList();
                 return JsonConvert.SerializeObject(_currentList);

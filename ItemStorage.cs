@@ -49,7 +49,7 @@ namespace TerrariaCompanionMod
                 {"Crafting Materials", new List<Dictionary<string, object>>()},
                 {"Furniture & Decorations", new List<Dictionary<string, object>>()},
                 {"Blocks", new List<Dictionary<string, object>>()},
-                {"Miscellaneous", new List<Dictionary<string, object>>()}
+                {"misc", new List<Dictionary<string, object>>()}
             };
         }
 
@@ -94,6 +94,9 @@ namespace TerrariaCompanionMod
                 else if (new_item.bodySlot !=-1) _categorisedItems["body"].Add(itemDict);
                 else if (new_item.legSlot !=-1) _categorisedItems["legs"].Add(itemDict);
             }
+            else {
+                _categorisedItems["misc"].Add(itemDict);
+            }
         }
 
         public void ClearMainList()
@@ -126,6 +129,5 @@ namespace TerrariaCompanionMod
             if (_instance == null)
                 _instance = new ItemStorage(mod);
         }
-
     }
 }

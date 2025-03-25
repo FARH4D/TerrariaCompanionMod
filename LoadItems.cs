@@ -22,13 +22,12 @@ namespace TerrariaCompanionMod
     {
         private List<Dictionary<string, object>> _currentList; 
         private bool hasLoaded = false;
-        private HashSet<int> itemsToProcess;
         private bool compiledTotal = false;
+        private string warning;
 
         public override void Load()
         {
             ItemStorage.Init(Mod);
-            itemsToProcess = new HashSet<int>();
         }
 
         public override void PostSetupContent()
@@ -159,7 +158,6 @@ namespace TerrariaCompanionMod
                 {
                     return "Error: No items found!";
                 }
-                Main.NewText(_mainList.Count);
                 List<Dictionary<string, object>> listToUse;
 
                 if (category == "all")
@@ -180,6 +178,11 @@ namespace TerrariaCompanionMod
                     listToUse = categorisedItems[category.Trim()];
                 }
 
+                Main.NewText(listToUse.Count);
+                if (max > listToUse.Count) {
+                    warning = "MAX";
+                    return JsonConvert.SerializeObject(warning);
+                }
                 _currentList = listToUse.Skip(Math.Max(0, max - 30)).Take(30).ToList();
                 return JsonConvert.SerializeObject(_currentList);
             });

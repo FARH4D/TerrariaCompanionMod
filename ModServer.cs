@@ -23,6 +23,7 @@ public class ModServer : ModSystem
     private int _currentNum;
     private int _lastNum = 0;
     private string _category = "all";
+    private string _lastCategory = "";
 
     private LoadItems _itemLoader;
     private LoadNpcs _npcLoader;
@@ -33,6 +34,7 @@ public class ModServer : ModSystem
 
     public override void OnWorldLoad()
     {
+        _lastNum = 0;
         _currentPage = "HOME";
         StartServer();
     }
@@ -98,10 +100,15 @@ public class ModServer : ModSystem
                             category = parts[2];
                             
                         }
-
+                        Main.NewText(receivedMessage);
                         _currentPage = page_name;
                         _currentNum = item_num;
                         _category = category;
+
+                        if (_category != _lastCategory){
+                            _lastNum = -1;
+                            _lastCategory = category;
+                        }
                         
                     }
 
@@ -110,7 +117,7 @@ public class ModServer : ModSystem
 
                         if (_currentPage == "HOME")
                         {
-                            // Send data to the client
+                            _lastNum = 0;
                             string data = GetHomeData();
                             byte[] buffer = Encoding.UTF8.GetBytes(data + "\n");
                             _stream.Write(buffer, 0, buffer.Length);
