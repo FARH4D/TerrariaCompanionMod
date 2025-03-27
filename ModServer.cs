@@ -27,6 +27,7 @@ public class ModServer : ModSystem
 
     private LoadItems _itemLoader;
     private LoadNpcs _npcLoader;
+    private LoadChecklist _bossChecklist;
     private NpcPage _npcPage;
     private ItemPage _itemPage;
     
@@ -60,6 +61,7 @@ public class ModServer : ModSystem
     {
         _itemLoader = new LoadItems();
         _npcLoader = new LoadNpcs();
+        _bossChecklist = new LoadChecklist();
         _npcPage = new NpcPage();
         _itemPage = new ItemPage();
 
@@ -114,54 +116,18 @@ public class ModServer : ModSystem
 
                     if (_client != null && _client.Connected)
                     {
-
                         if (_currentPage == "HOME")
                         {
                             _lastNum = 0;
-                            string data = GetHomeData();
-                            byte[] buffer = Encoding.UTF8.GetBytes(data + "\n");
-                            _stream.Write(buffer, 0, buffer.Length);
-                            _stream.Flush();
+                            SendData(GetHomeData());
                         }
-                        else if (_currentPage == "RECIPES")
+                        else
                         {
-                            _stream.Flush();
-                            if (_currentNum != _lastNum) {
+                            if (_currentNum != _lastNum)
+                            {
                                 _lastNum = _currentNum;
                                 string data = await GetDataForPage();
-                                byte[] buffer = Encoding.UTF8.GetBytes(data + "\n");
-                                _stream.Write(buffer, 0, buffer.Length);
-                                _stream.Flush();
-                            }
-                        }
-                        else if (_currentPage == "BEASTIARY")
-                        {
-                            if (_currentNum != _lastNum) {
-                                _lastNum = _currentNum;
-                                string data = await GetDataForPage();
-                                byte[] buffer = Encoding.UTF8.GetBytes(data + "\n");
-                                _stream.Write(buffer, 0, buffer.Length);
-                                _stream.Flush();
-                            }
-                        }
-                        else if (_currentPage == "BEASTIARYINFO")
-                        {
-                            if (_currentNum != _lastNum) {
-                                _lastNum = _currentNum;
-                                string data = await GetDataForPage();
-                                byte[] buffer = Encoding.UTF8.GetBytes(data + "\n");
-                                _stream.Write(buffer, 0, buffer.Length);
-                                _stream.Flush();
-                            }
-                        }
-                        else if (_currentPage == "ITEMINFO")
-                        {
-                            if (_currentNum != _lastNum) {
-                                _lastNum = _currentNum;
-                                string data = await GetDataForPage();
-                                byte[] buffer = Encoding.UTF8.GetBytes(data + "\n");
-                                _stream.Write(buffer, 0, buffer.Length);
-                                _stream.Flush();
+                                SendData(data);
                             }
                         }
                     }
@@ -177,6 +143,13 @@ public class ModServer : ModSystem
         _listenerThread.Start();
     }
 
+    private void SendData(string data)
+    {
+        byte[] buffer = Encoding.UTF8.GetBytes(data + "\n");
+        _stream.Write(buffer, 0, buffer.Length);
+        _stream.Flush();
+    }
+
     public void StopServer()
     {
         _running = false;
@@ -184,23 +157,15 @@ public class ModServer : ModSystem
         _client?.Close();
     }
 
-    public async Task<string> GetDataForPage()
-    {   
-        if (_currentPage == "HOME") return GetHomeData();
-        if (_currentPage == "RECIPES") {
-            return await _itemLoader.LoadItemList(_currentNum, _category.ToString()); 
-            }
-        if (_currentPage == "BEASTIARY") {
-            return await _npcLoader.LoadNpcList(_currentNum, _category.ToString()); 
-            }
-        if (_currentPage == "BEASTIARYINFO") {
-            return await _npcPage.LoadData(_currentNum);
-            }
-        if (_currentPage == "ITEMINFO") {
-            return await _itemPage.LoadData(_currentNum);
-            }
-        return "Unknown Page";
-    }
+    public async Task<string> GetDataForPage() => _currentPage switch
+    {
+        "RECIPES" => await _itemLoader.LoadItemList(_currentNum, _category.ToString()),
+        "BEASTIARY" => await _npcLoader.LoadNpcList(_currentNum, _category.ToString()),
+        "BEASTIARYINFO" => await _npcPage.LoadData(_currentNum),
+        "ITEMINFO" => await _itemPage.LoadData(_currentNum),
+        "CHECKLIST" => await _bossChecklist.LoadBosses(),
+        _ => "Unknown Page"
+    };
 
     private string GetHomeData()
     {
@@ -210,7 +175,7 @@ public class ModServer : ModSystem
             playerNames.Add(playername.name);
         }
 
-        Player player = Main.LocalPlayer; // Get the local player
+        Player player = Main.LocalPlayer;
 
         var data = new {
             health = new {current = player.statLife, max = player.statLifeMax},
