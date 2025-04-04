@@ -26,12 +26,44 @@ namespace TerrariaCompanionMod
             return await Task.Run(() =>
             {   
                 Mod bossChecklistMod = ModLoader.GetMod("BossChecklist");
-                var bossList = bossChecklistMod.Call("GetBossInfoDictionary", this) as Dictionary<string, Dictionary<string, object>>;
+                Mod terrariaCompanionMod = ModContent.GetInstance<TerrariaCompanionMod>();
+                if (bossChecklistMod == null) return "No Boss Checklist Mod";
 
-                List<string> boss_list_names = new List<string>();
+                var bossList = bossChecklistMod.Call("GetBossInfoDictionary", terrariaCompanionMod) as Dictionary<string, Dictionary<string, object>>;
 
-                return "hello";
-                // return JsonConvert.SerializeObject(bossList);
+                List<Dictionary<string, object>> bossListData = new List<Dictionary<string, object>>();
+
+                foreach (var kvp in bossList)
+                {
+                    var entryInfo = kvp.Value;
+                    Main.NewText(entryInfo.TryGetValue("displayName", out object nameObj));
+
+                    string bossName = string.Empty;
+
+                    if (entryInfo.TryGetValue("displayName", out object displayNameObj) && displayNameObj is string displayName)
+                    {
+                        bossName = displayName;
+                    }
+                    else if (entryInfo.TryGetValue("key", out object keyObj) && keyObj is string keyName)
+                    {
+                        bossName = keyName;
+                    }
+
+                    if (entryInfo.TryGetValue("downed", out object downedObj) && downedObj is Func<bool> downedFunc)
+                    {
+                        bool isDefeated = downedFunc();
+                        var bossData = new Dictionary<string, object>
+                        {
+                            { "name", bossName },
+                            { "downed", isDefeated }
+                        };
+                        bossListData.Add(bossData);
+                    }
+                }
+
+                string json = JsonConvert.SerializeObject(bossListData);
+                Main.NewText(json);
+                return json;
             });
         }
     }
