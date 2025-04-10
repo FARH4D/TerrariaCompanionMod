@@ -26,9 +26,17 @@ namespace TerrariaCompanionMod
         {
             return await Task.Run(() =>
             {   
-                Mod bossChecklistMod = ModLoader.GetMod("BossChecklist");
+                Mod bossChecklistMod = null;
                 Mod terrariaCompanionMod = ModContent.GetInstance<TerrariaCompanionMod>();
-                if (bossChecklistMod == null) return "No Boss Checklist Mod";
+
+                try {
+                    bossChecklistMod = ModLoader.GetMod("BossChecklist");
+                } catch (KeyNotFoundException) {
+                    Main.NewText("no boss checklist");
+                    return JsonConvert.SerializeObject("No BossChecklist");
+                } catch (Exception ex) {
+                    return JsonConvert.SerializeObject("Error checking for BossChecklist");
+                }
 
                 var bossList = bossChecklistMod.Call("GetBossInfoDictionary", terrariaCompanionMod) as Dictionary<string, Dictionary<string, object>>;
 
@@ -37,7 +45,6 @@ namespace TerrariaCompanionMod
                 foreach (var kvp in bossList)
                 {
                     var entryInfo = kvp.Value;
-
                     string bossName = string.Empty;
 
                     if (entryInfo.TryGetValue("displayName", out object displayNameObj) && displayNameObj is LocalizedText displayName)
