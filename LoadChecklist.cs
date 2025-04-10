@@ -14,6 +14,7 @@ using Newtonsoft.Json;
 using System.Threading.Tasks;
 using System.Threading;
 using System.Linq;
+using Terraria.Localization;
 
 
 namespace TerrariaCompanionMod
@@ -36,13 +37,12 @@ namespace TerrariaCompanionMod
                 foreach (var kvp in bossList)
                 {
                     var entryInfo = kvp.Value;
-                    Main.NewText(entryInfo.TryGetValue("displayName", out object nameObj));
 
                     string bossName = string.Empty;
 
-                    if (entryInfo.TryGetValue("displayName", out object displayNameObj) && displayNameObj is string displayName)
+                    if (entryInfo.TryGetValue("displayName", out object displayNameObj) && displayNameObj is LocalizedText displayName)
                     {
-                        bossName = displayName;
+                        bossName = displayName.Value;
                     }
                     else if (entryInfo.TryGetValue("key", out object keyObj) && keyObj is string keyName)
                     {
@@ -62,7 +62,6 @@ namespace TerrariaCompanionMod
                 }
 
                 string json = JsonConvert.SerializeObject(bossListData);
-                Main.NewText(json);
                 return json;
             });
         }

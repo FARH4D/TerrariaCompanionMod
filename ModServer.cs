@@ -102,7 +102,6 @@ public class ModServer : ModSystem
                             category = parts[2];
                             
                         }
-                        Main.NewText(receivedMessage);
                         _currentPage = page_name;
                         _currentNum = item_num;
                         _category = category;
