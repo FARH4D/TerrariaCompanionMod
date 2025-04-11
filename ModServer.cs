@@ -18,12 +18,14 @@ public class ModServer : ModSystem
     private TcpClient _client;
     private NetworkStream _stream;
     private Thread _listenerThread;
+
     private bool _running = false;
     private string _currentPage;
     private int _currentNum;
     private int _lastNum = 0;
     private string _category = "all";
     private string _lastCategory = "";
+    private bool _firstChecklist = false;
 
     private LoadItems _itemLoader;
     private LoadNpcs _npcLoader;
@@ -109,14 +111,14 @@ public class ModServer : ModSystem
                         if (_category != _lastCategory){
                             _lastNum = -1;
                             _lastCategory = category;
-                        }
-                        
+                        }    
                     }
 
                     if (_client != null && _client.Connected)
                     {
                         if (_currentPage == "HOME")
                         {
+                            _firstChecklist = false;
                             _lastNum = 0;
                             SendData(GetHomeData());
                         }
@@ -127,6 +129,12 @@ public class ModServer : ModSystem
                                 _lastNum = _currentNum;
                                 string data = await GetDataForPage();
                                 SendData(data);
+                            }
+                            else if (!_firstChecklist)
+                            {
+                                string data = await GetDataForPage();
+                                SendData(data);
+                                _firstChecklist = true;
                             }
                         }
                     }

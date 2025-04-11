@@ -15,13 +15,9 @@ public class MyGraphicsSystem : ModSystem
 {
     public override void OnModLoad()
     {
-        // Perform graphics-related tasks on the main thread
         
     }
 
-
-    
-	// Your code here
     public override void OnWorldLoad()
     {
         
@@ -32,16 +28,12 @@ public class MyGraphicsSystem : ModSystem
         {
             try
             {
-                // Extract the actual Texture2D from the Asset<Texture2D>
                 Texture2D texture = textureAsset.Value;
 
-                // Get a memory stream to save the PNG to
                 using (MemoryStream ms = new MemoryStream())
                 {
-                    // Save the texture as PNG to the memory stream
                     texture.SaveAsPng(ms, texture.Width, texture.Height);
 
-                    // Write the PNG data to a file
                     File.WriteAllBytes(fileName, ms.ToArray());
 
                     Console.WriteLine($"Texture saved as {fileName}");
