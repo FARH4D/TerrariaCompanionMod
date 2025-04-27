@@ -108,6 +108,7 @@ public class ModServer : ModSystem
                         _currentNum = item_num;
                         _category = category;
 
+                        Main.NewText(receivedMessage);
                         if (_category != _lastCategory){
                             _lastNum = -1;
                             _lastCategory = category;
