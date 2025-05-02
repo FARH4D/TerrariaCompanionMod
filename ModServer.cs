@@ -32,6 +32,7 @@ public class ModServer : ModSystem
     private LoadChecklist _bossChecklist;
     private NpcPage _npcPage;
     private ItemPage _itemPage;
+    private BossPage _bossPage;
     
     private ModServer() { }
 
@@ -112,7 +113,7 @@ public class ModServer : ModSystem
                         if (_category != _lastCategory){
                             _lastNum = -1;
                             _lastCategory = category;
-                        }    
+                        }
                     }
 
                     if (_client != null && _client.Connected)
@@ -125,14 +126,9 @@ public class ModServer : ModSystem
                         }
                         else
                         {
-                            if (_currentNum != _lastNum)
+                            if (_currentNum != _lastNum || !_firstChecklist)
                             {
                                 _lastNum = _currentNum;
-                                string data = await GetDataForPage();
-                                SendData(data);
-                            }
-                            else if (!_firstChecklist)
-                            {
                                 string data = await GetDataForPage();
                                 SendData(data);
                                 _firstChecklist = true;
@@ -172,6 +168,7 @@ public class ModServer : ModSystem
         "BEASTIARYINFO" => await _npcPage.LoadData(_currentNum),
         "ITEMINFO" => await _itemPage.LoadData(_currentNum),
         "CHECKLIST" => await _bossChecklist.LoadBosses(),
+        "BOSSINFO" => await _bossPage.LoadData(_currentNum),
         _ => "Unknown Page"
     };
 
