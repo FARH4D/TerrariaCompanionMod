@@ -29,7 +29,7 @@ public class ModServer : ModSystem
 
     private LoadItems _itemLoader;
     private LoadNpcs _npcLoader;
-    private LoadChecklist _bossChecklist;
+    private LoadChecklist _checklistLoader;
     private NpcPage _npcPage;
     private ItemPage _itemPage;
     private BossPage _bossPage;
@@ -64,9 +64,10 @@ public class ModServer : ModSystem
     {
         _itemLoader = new LoadItems();
         _npcLoader = new LoadNpcs();
-        _bossChecklist = new LoadChecklist();
+        _checklistLoader = new LoadChecklist();
         _npcPage = new NpcPage();
         _itemPage = new ItemPage();
+        _bossPage = new BossPage();
 
         if (_running) return; // Prevent multiple starts
         _running = true;
@@ -167,7 +168,7 @@ public class ModServer : ModSystem
         "BEASTIARY" => await _npcLoader.LoadNpcList(_currentNum, _category.ToString()),
         "BEASTIARYINFO" => await _npcPage.LoadData(_currentNum),
         "ITEMINFO" => await _itemPage.LoadData(_currentNum),
-        "CHECKLIST" => await _bossChecklist.LoadBosses(),
+        "CHECKLIST" => await _checklistLoader.LoadBosses(),
         "BOSSINFO" => await _bossPage.LoadData(_currentNum),
         _ => "Unknown Page"
     };
