@@ -1,27 +1,23 @@
 using System;
-using System.Net;
-using System.Net.Sockets;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using Microsoft.Xna.Framework.Graphics;
+using Newtonsoft.Json;
 using ReLogic.Content;
 using Terraria;
 using Terraria.GameContent;
-using Terraria.ID;
-using Terraria.ModLoader;
-using System.Collections.Generic;
-using Newtonsoft.Json;
-using System.Threading.Tasks;
-using System.Threading;
-using System.Linq;
 using Terraria.GameContent.ItemDropRules;
+using Terraria.ID;
 using Terraria.Localization;
+using Terraria.ModLoader;
 
 namespace TerrariaCompanionMod
 {
     public class BossPage : ModSystem
     {
-
         public async Task<string> LoadData(int bossNum)
         {
             return await Task.Run(() =>
@@ -29,174 +25,277 @@ namespace TerrariaCompanionMod
                 Mod bossChecklistMod = ModLoader.GetMod("BossChecklist");
                 Mod terrariaCompanionMod = ModContent.GetInstance<TerrariaCompanionMod>();
 
-                var bossList = bossChecklistMod.Call("GetBossInfoDictionary", terrariaCompanionMod) as Dictionary<string, Dictionary<string, object>>;
+                var bossList = bossChecklistMod?.Call("GetBossInfoDictionary", terrariaCompanionMod) as Dictionary<string, Dictionary<string, object>>;
                 if (bossList == null)
+                    return JsonConvert.SerializeObject(new { error = "No bosses received" });
+
+                var entry = bossList.ElementAtOrDefault(bossNum);
+                if (entry.Value == null)
+                    return JsonConvert.SerializeObject(new { error = "Boss not found" });
+
+                var entryInfo = entry.Value;
+                string bossName = "";
+                string spawnInfo = "";
+                bool isDefeated = false;
+                int npcID = -1;
+                string bossTextureBase64 = "";
+                List<Dictionary<string, object>> spawnItemList = new();
+                List<Dictionary<string, object>> dropList = new();
+                List<Task> mainThreadTasks = new();
+
+                if (entryInfo.TryGetValue("displayName", out object displayNameObj) && displayNameObj is LocalizedText displayName)
+                    bossName = displayName.Value;
+
+                else if (entryInfo.TryGetValue("key", out object keyObj) && keyObj is string key)
+                    bossName = key;
+
+                if (entryInfo.TryGetValue("spawnInfo", out object spawnInfoObj) && spawnInfoObj is Func<LocalizedText> spawnInfoFunc)
+                    spawnInfo = spawnInfoFunc()?.Value ?? "";
+
+                if (entryInfo.TryGetValue("downed", out object downedObj) && downedObj is Func<bool> downedFunc)
+                    isDefeated = downedFunc();
+
+                if (entryInfo.TryGetValue("npcIDs", out object npcIDsObj) && npcIDsObj is List<int> npcIDs && npcIDs.Count > 0)
+                    npcID = npcIDs[0];
+
+                string modName = "Terraria";
+                if (entryInfo.TryGetValue("modSource", out object modSourceObj) && modSourceObj is string modSourceStr)
                 {
-                    Main.NewText("Error: bossList is null.");
-                    return "Error: No bosses received.";
+                    modName = modSourceStr;
                 }
 
-                int i = 0;
+                string assetPath = $"BossChecklist/Resources/BossTextures/Boss{npcID}";
 
-                foreach (var kvp in bossList)
+                Main.NewText(npcID);
+                
+
+                if (entryInfo.TryGetValue("spawnItems", out object spawnItemsObj) && spawnItemsObj is List<int> spawnItems)
                 {
-                    if (i == bossNum) {
-                        var entryInfo = kvp.Value;
-                        string bossName = string.Empty;
-                        string spawnInfo = string.Empty; 
-                        bool isDefeated = false;
-
-                        if (entryInfo.TryGetValue("displayName", out object displayNameObj) && displayNameObj is LocalizedText displayName)
+                    foreach (int itemID in spawnItems)
+                    {
+                        var task = new TaskCompletionSource<bool>();
+                        Main.QueueMainThreadAction(() =>
                         {
-                            bossName = displayName.Value;
-                        }
-
-                        else if (entryInfo.TryGetValue("key", out object keyObj) && keyObj is string keyName)
-                        {
-                            bossName = keyName;
-                        }
-
-                        if (entryInfo.TryGetValue("spawnInfo", out object spawnInfoObj) && spawnInfoObj is Func<LocalizedText> spawnInfoFunc)
-                        {
-                            spawnInfo = spawnInfoFunc()?.Value ?? "";
-                        }
-
-                        if (entryInfo.TryGetValue("downed", out object downedObj) && downedObj is Func<bool> downedFunc)
-                        {
-                            isDefeated = downedFunc();
-                        }
-
-
-                        string base64Image = "";
-
-
-                        List<Dictionary<string, object>> spawnItemList = new List<Dictionary<string, object>>();
-
-                        if (entryInfo.TryGetValue("spawnItems", out object spawnItemsObj) && spawnItemsObj is List<int> spawnItems)
-                        {
-                            foreach (int itemID in spawnItems)
+                            try
                             {
-                                string itemName = Lang.GetItemName(itemID).Value;
-
                                 Item item = new Item();
                                 item.SetDefaults(itemID);
+                                Texture2D texture = null;
 
-                                Main.QueueMainThreadAction(() =>
+                                if (item.ModItem == null)
                                 {
-                                    Texture2D currentTexture = null;
-
-                                    if (item.ModItem == null)
+                                    if (TextureAssets.Item[item.type]?.IsLoaded == true)
                                     {
-                                        if (TextureAssets.Item[item.type] != null)
-                                        {
-                                            Main.instance.LoadItem(item.type);
-                                            currentTexture = TextureAssets.Item[item.type].Value;
-                                        }
+                                        Main.instance.LoadItem(item.type);
+                                        texture = TextureAssets.Item[item.type].Value;
                                     }
-                                    else if (item.ModItem != null)
-                                    {
-                                        var texturePath = item.ModItem.Texture;
-                                        if (ModContent.HasAsset(texturePath))
-                                        {
-                                            currentTexture = ModContent.Request<Texture2D>(texturePath).Value;
-                                        }
-                                    }
-                                    string base64Image = ConvertTextureToBase64(currentTexture);
-
-                                    var itemEntry = new Dictionary<string, object>
-                                    {
-                                        {"name", itemName},
-                                        {"id", itemID},
-                                        {"image", base64Image},
-                                    };
-
-                                    spawnItemList.Add(itemEntry);
-                                });
-                        }
-
-                        if (entryInfo.TryGetValue("npcIDs", out object npcIDsObj) && npcIDsObj is List<int> npcIDs)
-                        {
-                            foreach (int npcID in npcIDs)
-                            {
-                                string npcName = Lang.GetNPCName(npcID).Value;
-                                Main.NewText("NPC: " + npcName);
-                            }
-                        }
-
-                        List<Dictionary<string, object>> dropsList = new List<Dictionary<string, object>>();
-
-                        if (entryInfo.TryGetValue("dropRateInfo", out object dropInfoObj) && dropInfoObj is List<DropRateInfo> dropRateList)
-                        {
-                            foreach (DropRateInfo drop in dropRateList)
-                            {
-                                string itemName = Lang.GetItemName(drop.itemId).Value;
-                                float dropRate = drop.dropRate * 100f;
-
-                                Item item = new Item();
-                                item.SetDefaults(drop.itemId);
-                                Main.QueueMainThreadAction(() =>
+                                }
+                                else
                                 {
-                                    Texture2D currentTexture = null;
+                                    string texPath = item.ModItem.Texture;
+                                    if (ModContent.HasAsset(texPath))
+                                        texture = ModContent.Request<Texture2D>(texPath).Value;
+                                }
 
-                                    if (item.ModItem == null)
-                                    {
-                                        if (TextureAssets.Item[item.type] != null)
-                                        {
-                                            Main.instance.LoadItem(item.type);
-                                            currentTexture = TextureAssets.Item[item.type].Value;
-                                        }
-                                    }
-                                    else if (item.ModItem != null)
-                                    {
-                                        var texturePath = item.ModItem.Texture;
-                                        if (ModContent.HasAsset(texturePath))
-                                        {
-                                            currentTexture = ModContent.Request<Texture2D>(texturePath).Value;
-                                        }
-                                    }
+                                string image = ConvertTextureToBase64(texture);
 
-                                    string base64Image = ConvertTextureToBase64(currentTexture);
-
-                                    var dropEntry = new Dictionary<string, object>
-                                    {
-                                        {"id", drop.itemId},
-                                        {"name", itemName},
-                                        {"image", base64Image},
-                                        {"dropRate", dropRate}
-                                    };
-
-                                    dropsList.Add(dropEntry);
+                                spawnItemList.Add(new Dictionary<string, object>
+                                {
+                                {"name", Lang.GetItemName(itemID).Value },
+                                {"id", itemID },
+                                {"image", image }
                                 });
+
+                                task.SetResult(true);
                             }
-                        }
-
-                        var data = new
-                        {
-                            bossName = bossName,
-                            bossImage = base64Image,
-                            spawnItems = spawnItemList,
-                            spawnInfo = spawnInfo,
-                            status = isDefeated,
-                            drops = dropsList
-                        };
-
-                        string json = JsonConvert.SerializeObject(data);
-                        return json;
+                            catch (Exception ex)
+                            {
+                                task.SetException(ex);
+                            }
+                        });
+                        mainThreadTasks.Add(task.Task);
                     }
                 }
-                i++;
-            }
-            return "no boss";
+
+                var dropRules = Main.ItemDropsDB.GetRulesForNPCID(npcID, false);
+                foreach (var rule in dropRules)
+                {
+                    var dropRateInfo = new List<DropRateInfo>();
+                    rule.ReportDroprates(dropRateInfo, new DropRateInfoChainFeed(1f));
+
+                    foreach (var info in dropRateInfo)
+                    {
+                        if (dropRateInfo.Count > 1 && Main.GameMode != 0)
+                            continue;
+
+                        var task = new TaskCompletionSource<bool>();
+                        Main.QueueMainThreadAction(() =>
+                        {
+                            try
+                            {
+                                Item item = new Item();
+                                item.SetDefaults(info.itemId);
+                                Texture2D texture = null;
+
+                                if (item.ModItem == null)
+                                {
+                                    if (TextureAssets.Item[item.type]?.IsLoaded == true)
+                                    {
+                                        Main.instance.LoadItem(item.type);
+                                        texture = TextureAssets.Item[item.type].Value;
+                                    }
+                                }
+                                else
+                                {
+                                    string texPath = item.ModItem.Texture;
+                                    if (ModContent.HasAsset(texPath))
+                                        texture = ModContent.Request<Texture2D>(texPath).Value;
+                                }
+
+                                string image = ConvertTextureToBase64(texture);
+
+                                dropList.Add(new Dictionary<string, object>
+                                {
+                                {"id", info.itemId },
+                                {"name", Lang.GetItemNameValue(info.itemId) },
+                                {"image", image },
+                                {"droprate", info.dropRate > 0f ? info.dropRate * 100f : 0f }
+                                });
+
+                                task.SetResult(true);
+                            }
+                            catch (Exception ex)
+                            {
+                                task.SetException(ex);
+                            }
+                        });
+                        mainThreadTasks.Add(task.Task);
+                    }
+                }
+
+                var bossTextureTask = new TaskCompletionSource<bool>();
+
+                Main.QueueMainThreadAction(() =>
+                {
+                    try
+                    {
+                        Texture2D texture = null;
+                        bool success = false;
+
+                        if (ModContent.HasAsset(assetPath))
+                        {
+                            texture = ModContent.Request<Texture2D>(assetPath).Value;
+                            bossTextureBase64 = ConvertTextureToBase64(texture);
+                            Main.NewText("Loaded image from BossChecklist assets.");
+                            success = true;
+                        }
+                        else
+                        {
+                            if (modName != "Terraria")
+                            {
+                                string nameNoSpaces = bossName.Replace(" ", "");
+                                string basePathNoExt = $"{modName}/NPCs/{nameNoSpaces}/{nameNoSpaces}";
+                                string basePath = basePathNoExt;
+                                string altPath = basePathNoExt + "_BossChecklist";
+
+                                Main.NewText(basePath);
+                                if (ModContent.HasAsset(basePath))
+                                {
+                                    texture = ModContent.Request<Texture2D>(basePath).Value;
+                                    bossTextureBase64 = ConvertTextureToBase64(texture);
+                                    Main.NewText("Loaded image from mod NPCs folder.");
+                                    success = true;
+                                }
+                                else
+                                {
+                                    if (ModContent.HasAsset(altPath))
+                                    {
+                                        texture = ModContent.Request<Texture2D>(altPath).Value;
+                                        bossTextureBase64 = ConvertTextureToBase64(texture);
+                                        Main.NewText("Loaded image from mod NPCs folder (alt name).");
+                                        success = true;
+                                    }
+                                }
+                            }
+                        }
+                        if (!success)
+                        {
+                            Main.NewText("Using NPC fallback image for: " + npcID);
+                            Main.instance.LoadNPC(npcID);
+
+                            if (TextureAssets.Npc[npcID]?.IsLoaded == true)
+                            {
+                                Texture2D npcTexture = TextureAssets.Npc[npcID].Value;
+                                NPC npc = new NPC();
+                                npc.SetDefaults(npcID);
+                                bossTextureBase64 = ExtractFirstFrame(npcTexture, npc);
+
+                                if (string.IsNullOrEmpty(bossTextureBase64))
+                                    Main.NewText("Fallback base64 conversion failed.");
+                            }
+                            else
+                            {
+                                Main.NewText("NPC texture not loaded.");
+                            }
+                        }
+
+                        bossTextureTask.SetResult(true);
+                    }
+                    catch (Exception ex)
+                    {
+                        Main.NewText("Exception in image fallback: " + ex.Message);
+                        bossTextureTask.SetException(ex);
+                    }
+                });
+
+                Task.WaitAll(mainThreadTasks.ToArray());
+                bossTextureTask.Task.Wait();
+
+                var result = new
+                {
+                    bossName,
+                    bossImage = bossTextureBase64,
+                    spawnItems = spawnItemList,
+                    spawnInfo,
+                    status = isDefeated,
+                    drops = dropList
+                };
+
+                return JsonConvert.SerializeObject(result);
             });
         }
 
         private string ConvertTextureToBase64(Texture2D texture)
         {
-            using (MemoryStream ms = new MemoryStream())
+            using MemoryStream ms = new MemoryStream();
+            texture.SaveAsPng(ms, texture.Width, texture.Height);
+            return Convert.ToBase64String(ms.ToArray());
+        }
+
+        private string ExtractFirstFrame(Texture2D texture, NPC npc)
+        {
+            int frameCount = Main.npcFrameCount[npc.type];
+            if (frameCount <= 0) frameCount = 1;
+
+            int frameWidth = texture.Width;
+            int frameHeight = texture.Height / frameCount;
+
+            Texture2D firstFrameTexture = new Texture2D(Main.graphics.GraphicsDevice, frameWidth, frameHeight);
+            Microsoft.Xna.Framework.Color[] fullPixels = new Microsoft.Xna.Framework.Color[texture.Width * texture.Height];
+            texture.GetData(fullPixels);
+
+            Microsoft.Xna.Framework.Color[] framePixels = new Microsoft.Xna.Framework.Color[frameWidth * frameHeight];
+            for (int y = 0; y < frameHeight; y++)
             {
-                texture.SaveAsPng(ms, texture.Width, texture.Height);
-                return Convert.ToBase64String(ms.ToArray());
+                for (int x = 0; x < frameWidth; x++)
+                {
+                    framePixels[y * frameWidth + x] = fullPixels[y * frameWidth + x];
+                }
             }
+
+            firstFrameTexture.SetData(framePixels);
+
+            return ConvertTextureToBase64(firstFrameTexture);
         }
     }
 }
