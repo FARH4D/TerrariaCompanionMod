@@ -50,7 +50,94 @@ namespace TerrariaCompanionMod
                     bossName = key;
 
                 if (entryInfo.TryGetValue("spawnInfo", out object spawnInfoObj) && spawnInfoObj is Func<LocalizedText> spawnInfoFunc)
+                {
                     spawnInfo = spawnInfoFunc()?.Value ?? "";
+
+                    if (!string.IsNullOrEmpty(spawnInfo))
+                    {
+                        var matches = System.Text.RegularExpressions.Regex.Matches(spawnInfo, @"\[i:([^\]]+)\]");
+                        List<string> images = new();
+
+                        foreach (System.Text.RegularExpressions.Match match in matches)
+                        {
+                            string rawId = match.Groups[1].Value;
+                            int itemId = -1;
+
+                            if (int.TryParse(rawId, out int vanillaId))
+                            {
+                                itemId = vanillaId;
+                            }
+                            else if (rawId.Contains('/'))
+                            {
+                                var split = rawId.Split('/');
+                                if (split.Length == 2)
+                                {
+                                    string itemModName = split[0];
+                                    string itemName = split[1];
+
+                                    Mod mod = ModLoader.GetMod(itemModName);
+                                    if (mod != null && mod.TryFind(itemName, out ModItem modItem))
+                                    {
+                                        itemId = modItem.Type;
+                                    }
+                                }
+                            }
+
+                            if (itemId >= 0)
+                            {
+                                string itemName = Lang.GetItemName(itemId).Value;
+                                string imageBase64 = "";
+
+                                var task = new TaskCompletionSource<bool>();
+                                Main.QueueMainThreadAction(() =>
+                                {
+                                    try
+                                    {
+                                        Item item = new Item();
+                                        item.SetDefaults(itemId);
+                                        Texture2D texture = null;
+
+                                        if (item.ModItem == null)
+                                        {
+                                            if (TextureAssets.Item[item.type]?.IsLoaded == true)
+                                            {
+                                                Main.instance.LoadItem(item.type);
+                                                texture = TextureAssets.Item[item.type].Value;
+                                            }
+                                        }
+                                        else
+                                        {
+                                            string texPath = item.ModItem.Texture;
+                                            if (ModContent.HasAsset(texPath))
+                                                texture = ModContent.Request<Texture2D>(texPath).Value;
+                                        }
+
+                                        if (texture != null)
+                                            imageBase64 = ConvertTextureToBase64(texture);
+
+                                        task.SetResult(true);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        task.SetResult(true);
+                                    }
+                                });
+
+                                task.Task.Wait();
+
+                                spawnInfo = spawnInfo.Replace(match.Value, itemName);
+
+                                if (!string.IsNullOrEmpty(imageBase64))
+                                    images.Add($":{imageBase64}:");
+                            }
+                        }
+
+                        if (images.Count > 0)
+                        {
+                            spawnInfo += " " + string.Join(" ", images);
+                        }
+                    }
+                }
 
                 if (entryInfo.TryGetValue("downed", out object downedObj) && downedObj is Func<bool> downedFunc)
                     isDefeated = downedFunc();
@@ -65,9 +152,6 @@ namespace TerrariaCompanionMod
                 }
 
                 string assetPath = $"BossChecklist/Resources/BossTextures/Boss{npcID}";
-
-                Main.NewText(npcID);
-                
 
                 if (entryInfo.TryGetValue("spawnItems", out object spawnItemsObj) && spawnItemsObj is List<int> spawnItems)
                 {
@@ -186,7 +270,6 @@ namespace TerrariaCompanionMod
                         {
                             texture = ModContent.Request<Texture2D>(assetPath).Value;
                             bossTextureBase64 = ConvertTextureToBase64(texture);
-                            Main.NewText("Loaded image from BossChecklist assets.");
                             success = true;
                         }
                         else
@@ -198,21 +281,18 @@ namespace TerrariaCompanionMod
                                 string basePath = basePathNoExt;
                                 string altPath = basePathNoExt + "_BossChecklist";
 
-                                Main.NewText(basePath);
                                 if (ModContent.HasAsset(basePath))
                                 {
-                                    texture = ModContent.Request<Texture2D>(basePath).Value;
+                                    texture = ModContent.Request<Texture2D>(basePath, AssetRequestMode.ImmediateLoad).Value;
                                     bossTextureBase64 = ConvertTextureToBase64(texture);
-                                    Main.NewText("Loaded image from mod NPCs folder.");
                                     success = true;
                                 }
                                 else
                                 {
                                     if (ModContent.HasAsset(altPath))
                                     {
-                                        texture = ModContent.Request<Texture2D>(altPath).Value;
+                                        texture = ModContent.Request<Texture2D>(altPath, AssetRequestMode.ImmediateLoad).Value;
                                         bossTextureBase64 = ConvertTextureToBase64(texture);
-                                        Main.NewText("Loaded image from mod NPCs folder (alt name).");
                                         success = true;
                                     }
                                 }
@@ -220,7 +300,6 @@ namespace TerrariaCompanionMod
                         }
                         if (!success)
                         {
-                            Main.NewText("Using NPC fallback image for: " + npcID);
                             Main.instance.LoadNPC(npcID);
 
                             if (TextureAssets.Npc[npcID]?.IsLoaded == true)
@@ -229,13 +308,6 @@ namespace TerrariaCompanionMod
                                 NPC npc = new NPC();
                                 npc.SetDefaults(npcID);
                                 bossTextureBase64 = ExtractFirstFrame(npcTexture, npc);
-
-                                if (string.IsNullOrEmpty(bossTextureBase64))
-                                    Main.NewText("Fallback base64 conversion failed.");
-                            }
-                            else
-                            {
-                                Main.NewText("NPC texture not loaded.");
                             }
                         }
 
@@ -243,7 +315,6 @@ namespace TerrariaCompanionMod
                     }
                     catch (Exception ex)
                     {
-                        Main.NewText("Exception in image fallback: " + ex.Message);
                         bossTextureTask.SetException(ex);
                     }
                 });
