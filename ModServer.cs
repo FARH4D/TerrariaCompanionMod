@@ -26,6 +26,7 @@ public class ModServer : ModSystem
     private string _category = "all";
     private string _lastCategory = "";
     private bool _firstChecklist = false;
+    private bool _loadPlayerCosmetics = false;
 
     private LoadItems _itemLoader;
     private LoadNpcs _npcLoader;
@@ -123,6 +124,7 @@ public class ModServer : ModSystem
                         {
                             _firstChecklist = false;
                             _lastNum = 0;
+
                             SendData(GetHomeData());
                         }
                         else
@@ -183,10 +185,19 @@ public class ModServer : ModSystem
 
         Player player = Main.LocalPlayer;
 
-        var data = new {
-            health = new {current = player.statLife, max = player.statLifeMax},
-            mana = new {current = player.statMana, max = player.statManaMax},
-            player_list = playerNames
+        Dictionary<string, string> visualData = new();
+
+        if (!_loadPlayerCosmetics)
+        {
+            visualData = PlayerRender.GetPlayerVisualBase64(player);
+        }
+
+        var data = new
+        {
+            health = new { current = player.statLife, max = player.statLifeMax },
+            mana = new { current = player.statMana, max = player.statManaMax },
+            player_list = playerNames,
+            cosmetics = visualData
         };
 
         return JsonConvert.SerializeObject(data);
