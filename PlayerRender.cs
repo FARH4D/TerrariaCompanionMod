@@ -27,10 +27,16 @@ namespace TerrariaCompanionMod
                         visualData["HeadArmour"] = ExtractFirstFrame(headTex, 20);
                     }
 
-                    if (player.body > 0 && TextureAssets.ArmorBody[player.body]?.IsLoaded == true)
+                    int bodySlot = player.body;
+
+                    if (bodySlot >= 0 && bodySlot < TextureAssets.ArmorBody.Length)
                     {
-                        Texture2D bodyTex = TextureAssets.ArmorBody[player.body].Value;
-                        visualData["BodyArmour"] = ConvertTextureToBase64(bodyTex);
+                        string bodyPath = $"Terraria/Images/Armor/Armor_{bodySlot}";
+                        Texture2D bodyTex = ModContent.Request<Texture2D>(bodyPath, ReLogic.Content.AssetRequestMode.ImmediateLoad).Value;
+
+                        visualData["BodyArmourTorso"] = ExtractFrameFromGrid(bodyTex, 9, 4, 0, 0);
+                        visualData["BodyArmourLeftArm"] = ExtractFrameFromGrid(bodyTex, 9, 4, 2, 0);
+                        visualData["BodyArmourRightArm"] = ExtractFrameFromGrid(bodyTex, 9, 4, 2, 2);
                     }
 
                     if (player.legs > 0 && TextureAssets.ArmorLeg[player.legs]?.IsLoaded == true)
@@ -97,6 +103,30 @@ namespace TerrariaCompanionMod
 
             firstFrameTexture.SetData(framePixels);
             return ConvertTextureToBase64(firstFrameTexture);
+        }
+
+        private static string ExtractFrameFromGrid(Texture2D texture, int columns, int rows, int frameX = 0, int frameY = 0)
+        {
+            int frameWidth = texture.Width / columns;
+            int frameHeight = texture.Height / rows;
+
+            Texture2D frameTexture = new Texture2D(Main.graphics.GraphicsDevice, frameWidth, frameHeight);
+            Color[] fullPixels = new Color[texture.Width * texture.Height];
+            texture.GetData(fullPixels);
+
+            Color[] framePixels = new Color[frameWidth * frameHeight];
+            for (int y = 0; y < frameHeight; y++)
+            {
+                for (int x = 0; x < frameWidth; x++)
+                {
+                    int sourceX = x + frameX * frameWidth;
+                    int sourceY = y + frameY * frameHeight;
+                    framePixels[y * frameWidth + x] = fullPixels[sourceY * texture.Width + sourceX];
+                }
+            }
+
+            frameTexture.SetData(framePixels);
+            return ConvertTextureToBase64(frameTexture);
         }
     }
 }
