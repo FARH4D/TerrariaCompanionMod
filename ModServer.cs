@@ -34,7 +34,7 @@ public class ModServer : ModSystem
     private NpcPage _npcPage;
     private ItemPage _itemPage;
     private BossPage _bossPage;
-    
+
     private ModServer() { }
 
     public override void OnWorldLoad()
@@ -80,7 +80,8 @@ public class ModServer : ModSystem
         {
             while (_running)
             {
-                try {
+                try
+                {
 
                     if (_server.Pending()) // Check for new clients
                     {
@@ -91,7 +92,7 @@ public class ModServer : ModSystem
 
                     if (_client != null && _client.Connected && _stream.DataAvailable)
                     {
-                        
+
                         byte[] buffer = new byte[1024];
                         int bytesRead = _stream.Read(buffer, 0, buffer.Length);
                         string receivedMessage = Encoding.UTF8.GetString(buffer, 0, bytesRead).Trim();
@@ -100,19 +101,21 @@ public class ModServer : ModSystem
                         int item_num = 30;
                         string category = "all";
 
-                        if (receivedMessage.Contains(":")){
+                        if (receivedMessage.Contains(":"))
+                        {
                             string[] parts = receivedMessage.Split(":", 3);
                             page_name = parts[0];
                             item_num = int.Parse(parts[1]);
                             category = parts[2];
-                            
+
                         }
                         _currentPage = page_name;
                         _currentNum = item_num;
                         _category = category;
 
                         Main.NewText(receivedMessage);
-                        if (_category != _lastCategory){
+                        if (_category != _lastCategory)
+                        {
                             _lastNum = -1;
                             _lastCategory = category;
                         }
@@ -139,7 +142,8 @@ public class ModServer : ModSystem
                         }
                     }
                 }
-                catch (Exception e) {
+                catch (Exception e)
+                {
                     StopServer();
                     break;
                 }
@@ -178,8 +182,9 @@ public class ModServer : ModSystem
     private string GetHomeData()
     {
         List<string> playerNames = new List<string>();
-    
-        foreach (var playername in Main.ActivePlayers) {
+
+        foreach (var playername in Main.ActivePlayers)
+        {
             playerNames.Add(playername.name);
         }
 
@@ -192,14 +197,49 @@ public class ModServer : ModSystem
             visualData = PlayerRender.GetPlayerVisualBase64(player);
         }
 
+        string biome = GetPlayerBiome(player);
+
         var data = new
         {
             health = new { current = player.statLife, max = player.statLifeMax },
             mana = new { current = player.statMana, max = player.statManaMax },
             player_list = playerNames,
-            cosmetics = visualData
+            cosmetics = visualData,
+            biome = biome
         };
 
         return JsonConvert.SerializeObject(data);
     }
+
+    public static string GetPlayerBiome(Player player)
+    {
+        string elevation = "";
+        if ((int)(player.position.Y / 16) >= Main.maxTilesY - 200) elevation = "underworld";
+        // else if (player.ZoneSkyHeight) elevation = "sky";
+        else if (player.ZoneOverworldHeight) elevation = "surface";
+        else if (player.ZoneDirtLayerHeight) elevation = "underground";
+        else if (player.ZoneRockLayerHeight) elevation = "cavern";
+
+        if (player.ZoneDungeon) return "dungeon";
+        if (player.ZoneJungle) return elevation + "_jungle";
+        if (player.ZoneCorrupt) return elevation + "_corruption";
+        if (player.ZoneCrimson) return elevation + "_crimson";
+        if (player.ZoneHallow) return elevation + "_hallow";
+        if (player.ZoneSnow) return elevation + "_snow";
+        if (player.ZoneDesert) return elevation + "_desert";
+        if (player.ZoneGlowshroom) return elevation + "_glowing_mushroom";
+        if (player.ZoneBeach) return "ocean";
+        if (player.ZoneGranite) return "granite";
+        if (player.ZoneMarble) return "marble";
+        if (player.ZoneHive) return "bee_hive";
+        if (player.ZoneTowerNebula) return "nebula";
+        if (player.ZoneTowerSolar) return "solar";
+        if (player.ZoneTowerVortex) return "vortex";
+        if (player.ZoneTowerStardust) return "stardust";
+        if (player.ZoneForest) return "forest";
+
+        else return elevation;
+
+    }
+
 }
