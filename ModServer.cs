@@ -34,6 +34,7 @@ public class ModServer : ModSystem
     private NpcPage _npcPage;
     private ItemPage _itemPage;
     private BossPage _bossPage;
+    private PotionLoadouts _potionLoadouts;
 
     private ModServer() { }
 
@@ -69,6 +70,7 @@ public class ModServer : ModSystem
         _npcPage = new NpcPage();
         _itemPage = new ItemPage();
         _bossPage = new BossPage();
+        _potionLoadouts = new PotionLoadouts();
 
         if (_running) return; // Prevent multiple starts
         _running = true;
@@ -130,6 +132,10 @@ public class ModServer : ModSystem
 
                             SendData(GetHomeData());
                         }
+                        else if (_currentPage == "NULL")
+                        {
+                            _lastNum = 0;
+                        }
                         else
                         {
                             if (_currentNum != _lastNum || !_firstChecklist)
@@ -176,6 +182,7 @@ public class ModServer : ModSystem
         "ITEMINFO" => await _itemPage.LoadData(_currentNum),
         "CHECKLIST" => await _checklistLoader.LoadBosses(),
         "BOSSINFO" => await _bossPage.LoadData(_currentNum),
+        "CREATEPOTION" => await _potionLoadouts.GetConsumablesData(Main.LocalPlayer),
         _ => "Unknown Page"
     };
 
