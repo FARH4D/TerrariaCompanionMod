@@ -34,6 +34,8 @@ public class ModServer : ModSystem
     private ItemPage _itemPage;
     private BossPage _bossPage;
     private PotionLoadouts _potionLoadouts;
+    private UsePotions _usePotions;
+    List<PotionEntryData> potions;
 
     private ModServer() { }
 
@@ -70,6 +72,7 @@ public class ModServer : ModSystem
         _itemPage = new ItemPage();
         _bossPage = new BossPage();
         _potionLoadouts = new PotionLoadouts();
+        _usePotions = new UsePotions();
 
         if (_running) return; // Prevent multiple starts
         _running = true;
@@ -83,7 +86,6 @@ public class ModServer : ModSystem
             {
                 try
                 {
-
                     if (_server.Pending()) // Check for new clients
                     {
                         _client = _server.AcceptTcpClient();
@@ -93,7 +95,6 @@ public class ModServer : ModSystem
 
                     if (_client != null && _client.Connected && _stream.DataAvailable)
                     {
-
                         byte[] buffer = new byte[1024];
                         int bytesRead = _stream.Read(buffer, 0, buffer.Length);
                         string receivedMessage = Encoding.UTF8.GetString(buffer, 0, bytesRead).Trim();
@@ -102,17 +103,37 @@ public class ModServer : ModSystem
                         int item_num = 30;
                         string category = "all";
 
-                        if (receivedMessage.Contains(":"))
+                        if (receivedMessage.StartsWith("USELOADOUT_BASE64:"))
+                        {
+                            Mod.Logger.Info(receivedMessage);
+                            item_num = 0;
+                            page_name = "NULL";
+                            category = "SKIPCONDITION";
+
+                            string base64 = receivedMessage.Substring("USELOADOUT_BASE64:".Length);
+                            string json = Encoding.UTF8.GetString(Convert.FromBase64String(base64));
+                            try
+                            {
+                                potions = JsonConvert.DeserializeObject<List<PotionEntryData>>(json);
+                            }
+                            catch (Exception ex)
+                            {
+                                Mod.Logger.Error("Failed to deserialize USELOADOUT JSON: " + ex.Message);
+                            }
+                            _usePotions.consumePotions(Main.LocalPlayer, potions);
+                        }
+                        
+                        else if (receivedMessage.Contains(":"))
                         {
                             string[] parts = receivedMessage.Split(":", 3);
                             page_name = parts[0];
                             item_num = int.Parse(parts[1]);
                             category = parts[2];
-
                         }
-                        _currentPage = page_name;
+
                         _currentNum = item_num;
                         _category = category;
+                        _currentPage = page_name;
 
                         if (_category != _lastCategory)
                         {
@@ -244,7 +265,5 @@ public class ModServer : ModSystem
         if (player.ZoneForest) return "forest";
 
         else return elevation;
-
     }
-
 }

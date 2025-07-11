@@ -66,12 +66,7 @@ namespace TerrariaCompanionMod
         }
         private static string GetVanillaInternalName(int type)
         {
-            foreach (var field in typeof(ItemID).GetFields())
-            {
-                if (field.FieldType == typeof(int) && (int)field.GetValue(null) == type)
-                    return field.Name;
-            }
-            return "unknown";
+            return ItemID.Search.GetName(type) ?? "unknown";
         }
     }
 }
