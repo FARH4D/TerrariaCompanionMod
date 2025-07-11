@@ -6,7 +6,6 @@ using Terraria.ModLoader;
 using System.Collections.Generic;
 using Newtonsoft.Json;
 using System.Threading.Tasks;
-using Terraria.Localization;
 using Microsoft.Xna.Framework.Graphics;
 using System.IO;
 
@@ -62,7 +61,6 @@ namespace TerrariaCompanionMod
 
                 Task.WaitAll(mainThreadTasks.ToArray());
 
-                Main.NewText("Loaded " + consumables.Count + " consumables.");
                 return JsonConvert.SerializeObject(consumables);
             });
         }
@@ -74,15 +72,6 @@ namespace TerrariaCompanionMod
                     return field.Name;
             }
             return "unknown";
-        }
-
-        private static string ConvertTextureToBase64(Texture2D texture)
-        {
-            using (MemoryStream ms = new MemoryStream())
-            {
-                texture.SaveAsPng(ms, texture.Width, texture.Height);
-                return Convert.ToBase64String(ms.ToArray());
-            }
         }
     }
 }

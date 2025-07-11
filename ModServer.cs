@@ -8,7 +8,6 @@ using System.Collections.Generic;
 using Newtonsoft.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Reflection;
 using TerrariaCompanionMod;
 
 public class ModServer : ModSystem
@@ -115,7 +114,6 @@ public class ModServer : ModSystem
                         _currentNum = item_num;
                         _category = category;
 
-                        Main.NewText(receivedMessage);
                         if (_category != _lastCategory)
                         {
                             _lastNum = -1;
