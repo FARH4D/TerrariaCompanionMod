@@ -19,6 +19,8 @@ public class ModServer : ModSystem
     private Thread _listenerThread;
 
     private bool _running = false;
+    public bool IsRunning => _running;
+    private int _lastPort = -1;
     private string _currentPage;
     private int _currentNum;
     private int _lastNum = 0;
@@ -51,6 +53,21 @@ public class ModServer : ModSystem
         StopServer();
     }
 
+    public override void PostUpdateEverything()
+    {
+        if (!_running)
+            return;
+
+        int currentPort = ServerConfig.Instance.ServerPort;
+
+        if (currentPort != _lastPort)
+        {
+            RestartServer();
+            Main.NewText("Server restarted on new port: " + currentPort);
+            _lastPort = currentPort;
+        }
+    }
+
     public static ModServer Instance
     {
         get
@@ -63,8 +80,11 @@ public class ModServer : ModSystem
         }
     }
 
-    public void StartServer(int port = 12345)
+    public void StartServer(int? port = null)
     {
+        int selectedPort = port ?? ServerConfig.Instance.ServerPort;
+        _lastPort = selectedPort;
+        
         _itemLoader = new LoadItems();
         _npcLoader = new LoadNpcs();
         _checklistLoader = new LoadChecklist();
@@ -77,7 +97,7 @@ public class ModServer : ModSystem
         if (_running) return; // Prevent multiple starts
         _running = true;
 
-        _server = new TcpListener(IPAddress.Any, port);
+        _server = new TcpListener(IPAddress.Any, selectedPort);
         _server.Start();
 
         _listenerThread = new Thread(async () =>
@@ -188,9 +208,24 @@ public class ModServer : ModSystem
 
     public void StopServer()
     {
-        _running = false;
-        _server?.Stop();
-        _client?.Close();
+        try
+        {
+            _running = false;
+            _listenerThread?.Join();
+            _stream?.Close();
+            _client?.Close();
+            _server?.Stop();
+        }
+        catch (Exception ex)
+        {
+            Mod.Logger.Error("Error while stopping server: " + ex.Message);
+        }
+    }
+
+    public void RestartServer()
+    {
+        StopServer();
+        StartServer();
     }
 
     public async Task<string> GetDataForPage() => _currentPage switch

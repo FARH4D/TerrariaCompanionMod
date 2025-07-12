@@ -1,0 +1,21 @@
+Mods: {
+	TerrariaCompanionMod: {
+		Configs: {
+			ServerConfig: {
+				DisplayName: Server Config
+
+				ServerPort: {
+					Label: Server Port
+					Tooltip: The port used by the mod's server communication system
+				}
+
+				Headers.ConnectionInfo: Connection Info Header
+
+				LocalIPAddress: {
+					Label: Local IP Address
+					Tooltip: Your local IP address on the network (used for connecting your mobile app)
+				}
+			}
+		}
+	}
+}
