@@ -199,61 +199,74 @@ namespace TerrariaCompanionMod
                     }
                 }
 
-                var dropRules = Main.ItemDropsDB.GetRulesForNPCID(npcID, false);
+                List<IItemDropRule> dropRules = Main.ItemDropsDB.GetRulesForNPCID(npcID, false);
+                List<DropRateInfo> allDropInfo = new List<DropRateInfo>();
+
                 foreach (var rule in dropRules)
                 {
-                    var dropRateInfo = new List<DropRateInfo>();
-                    rule.ReportDroprates(dropRateInfo, new DropRateInfoChainFeed(1f));
+                    DropRateInfoChainFeed feed = new DropRateInfoChainFeed(1f);
+                    CollectDropsRecursive(rule, allDropInfo, feed);
+                }
 
-                    foreach (var info in dropRateInfo)
+                var groupedByItem = allDropInfo
+                .GroupBy(info => info.itemId)
+                .Select(group =>
+                {
+                    var match = group.FirstOrDefault(info => MatchesCurrentDifficulty(info));
+                    if (match.itemId == 0 && match.dropRate == 0f)
+                        return group.First();
+                    return match;
+                });
+
+                List<Task> mainThreadTasks2 = new List<Task>();
+
+                foreach (var info in groupedByItem)
+                {
+                    var task = new TaskCompletionSource<bool>();
+                    Main.QueueMainThreadAction(() =>
                     {
-                        if (dropRateInfo.Count > 1 && Main.GameMode != 0)
-                            continue;
-
-                        var task = new TaskCompletionSource<bool>();
-                        Main.QueueMainThreadAction(() =>
+                        try
                         {
-                            try
+                            Item item = new Item();
+                            item.SetDefaults(info.itemId);
+
+                            Texture2D texture = null;
+                            if (item.ModItem == null)
                             {
-                                Item item = new Item();
-                                item.SetDefaults(info.itemId);
-                                Texture2D texture = null;
-
-                                if (item.ModItem == null)
+                                if (TextureAssets.Item[item.type]?.IsLoaded == true)
                                 {
-                                    if (TextureAssets.Item[item.type]?.IsLoaded == true)
-                                    {
-                                        Main.instance.LoadItem(item.type);
-                                        texture = TextureAssets.Item[item.type].Value;
-                                    }
+                                    Main.instance.LoadItem(item.type);
+                                    texture = TextureAssets.Item[item.type].Value;
                                 }
-                                else
-                                {
-                                    string texPath = item.ModItem.Texture;
-                                    if (ModContent.HasAsset(texPath))
-                                        texture = ModContent.Request<Texture2D>(texPath).Value;
-                                }
+                            }
+                            else
+                            {
+                                string texPath = item.ModItem.Texture;
+                                if (ModContent.HasAsset(texPath))
+                                    texture = ModContent.Request<Texture2D>(texPath).Value;
+                            }
 
-                                string image = ConvertTextureToBase64(texture);
+                            string image = ConvertTextureToBase64(texture);
 
-                                dropList.Add(new Dictionary<string, object>
-                                {
+                            dropList.Add(new Dictionary<string, object>
+                            {
                                 {"id", info.itemId },
                                 {"name", Lang.GetItemNameValue(info.itemId) },
                                 {"image", image },
-                                {"droprate", info.dropRate > 0f ? info.dropRate * 100f : 0f }
-                                });
+                                {"droprate", info.dropRate * 100f }
+                            });
 
-                                task.SetResult(true);
-                            }
-                            catch (Exception ex)
-                            {
-                                task.SetException(ex);
-                            }
-                        });
-                        mainThreadTasks.Add(task.Task);
-                    }
+                            task.SetResult(true);
+                        }
+                        catch (Exception ex)
+                        {
+                            task.SetException(ex);
+                        }
+                    });
+                    mainThreadTasks2.Add(task.Task);
                 }
+
+                Task.WaitAll(mainThreadTasks2.ToArray());
 
                 var bossTextureTask = new TaskCompletionSource<bool>();
 
@@ -365,6 +378,39 @@ namespace TerrariaCompanionMod
             firstFrameTexture.SetData(framePixels);
 
             return ConvertTextureToBase64(firstFrameTexture);
+        }
+
+        private void CollectDropsRecursive(IItemDropRule rule, List<DropRateInfo> dropRateInfoList, DropRateInfoChainFeed chainFeed)
+        {
+            List<DropRateInfo> tempDrops = new List<DropRateInfo>();
+            rule.ReportDroprates(tempDrops, chainFeed);
+
+            dropRateInfoList.AddRange(tempDrops);
+
+            foreach (var chain in rule.ChainedRules)
+            {
+                CollectDropsRecursive(chain.RuleToChain, dropRateInfoList, chainFeed);
+            }
+        }
+        
+        private bool MatchesCurrentDifficulty(DropRateInfo info)
+        {
+            if (info.conditions == null || info.conditions.Count == 0)
+                return Main.GameMode == 0;
+
+            foreach (var condition in info.conditions)
+            {
+                if (condition == null) continue;
+
+                string name = condition.GetType().Name;
+
+                if (Main.GameMode == 0 && name.Contains("Expert")) return false;
+                if (Main.GameMode == 0 && name.Contains("Master")) return false;
+                if (Main.GameMode == 1 && name.Contains("Master")) return false;
+                if (Main.GameMode == 2 && !name.Contains("Master")) return false;
+            }
+
+            return true;
         }
     }
 }

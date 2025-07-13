@@ -69,12 +69,7 @@ namespace TerrariaCompanionMod
 
                             currentTexture = TextureAssets.Npc[npc.type].Value;
                             
-
                             string base64Image = ExtractFirstFrame(currentTexture, npc);
-                            
-    
-
-                            // string base64Image = ConvertTextureToBase64(currentTexture);
 
                             var npcDict = new Dictionary<string, object>
                             {
@@ -177,12 +172,9 @@ namespace TerrariaCompanionMod
                 }
             }
 
-
             firstFrameTexture.SetData(framePixels);
             
             return ConvertTextureToBase64(firstFrameTexture);
-
         }
-
     }
 }
