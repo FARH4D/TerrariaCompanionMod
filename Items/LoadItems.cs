@@ -16,7 +16,6 @@ namespace TerrariaCompanionMod
     {
         private List<Dictionary<string, object>> _currentList; 
         private bool hasLoaded = false;
-        private bool compiledTotal = false;
         private string warning;
 
         public override void Load()
@@ -39,7 +38,7 @@ namespace TerrariaCompanionMod
                     LoadTextures("modded");
 
                     var storage = ItemStorage.Instance;
-                    storage.SetTotalList(); // Move this inside the callback
+                    storage.SetTotalList(); // Moves this inside the callback
                 });
             }
         }
@@ -135,23 +134,20 @@ namespace TerrariaCompanionMod
             });
         }
 
-        public async Task<string> LoadItemList(int max, string category)
+        public async Task<string> LoadItemList(int max, string category, string search)
         {
             return await Task.Run(() =>
             {
                 var storage = ItemStorage.Instance;
-                if (!compiledTotal)
-                {
-                    storage.SetTotalList();
-                    compiledTotal = true;
-                }
-                
+                storage.SetTotalList();
+
                 var _mainList = storage.GetTotalList();
 
                 if (_mainList == null || _mainList.Count == 0)
                 {
                     return "Error: No items found!";
                 }
+
                 List<Dictionary<string, object>> listToUse;
 
                 if (category == "all")
@@ -162,21 +158,35 @@ namespace TerrariaCompanionMod
                 {
                     var categorisedItems = storage.GetCategorisedItems();
 
-                    if (categorisedItems == null ){
+                    if (categorisedItems == null)
+                    {
                         return "Error: Empty List!";
                     }
 
                     if (!categorisedItems.ContainsKey(category.Trim()))
+                    {
                         return "Error: Category not found!";
+                    }
 
                     listToUse = categorisedItems[category.Trim()];
                 }
 
-                if (max > listToUse.Count) {
+                search = search?.Trim();
+
+                if (!string.IsNullOrEmpty(search))
+                {
+                    int beforeFilter = listToUse.Count;
+                    listToUse = listToUse.Where(item => item.TryGetValue("name", out var nameObj) && nameObj is string name && name.IndexOf(search, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
+                }
+
+                if (max > listToUse.Count && max != 30)
+                {
                     warning = "MAX";
                     return JsonConvert.SerializeObject(warning);
                 }
+
                 _currentList = listToUse.Skip(Math.Max(0, max - 30)).Take(30).ToList();
+
                 return JsonConvert.SerializeObject(_currentList);
             });
         }

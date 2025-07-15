@@ -23,9 +23,11 @@ public class ModServer : ModSystem
     private int _lastPort = -1;
     private string _currentPage;
     private int _currentNum;
+    private string _search;
     private int _lastNum = 0;
     private string _category = "all";
     private string _lastCategory = "";
+    private string _lastSearch = "";
     private bool _firstChecklist = false;
     private bool _loadPlayerCosmetics = false;
 
@@ -122,6 +124,7 @@ public class ModServer : ModSystem
                         string page_name = receivedMessage;
                         int item_num = 30;
                         string category = "all";
+                        string search = "";
 
                         if (receivedMessage.StartsWith("USELOADOUT_BASE64:"))
                         {
@@ -142,23 +145,38 @@ public class ModServer : ModSystem
                             }
                             _usePotions.consumePotions(Main.LocalPlayer, potions);
                         }
-                        
+
                         else if (receivedMessage.Contains(":"))
                         {
                             string[] parts = receivedMessage.Split(":", 3);
                             page_name = parts[0];
                             item_num = int.Parse(parts[1]);
-                            category = parts[2];
+
+                            string[] subParts = parts[2].Split(',', 2);
+
+                            category = subParts[0];
+                            search = subParts.Length > 1 ? subParts[1] : "";
+                            Mod.Logger.Info(receivedMessage);
+                            Mod.Logger.Info(item_num);
+                            Mod.Logger.Info(category);
+                            Mod.Logger.Info(search);
                         }
 
                         _currentNum = item_num;
                         _category = category;
                         _currentPage = page_name;
+                        _search = search;
 
                         if (_category != _lastCategory)
                         {
                             _lastNum = -1;
-                            _lastCategory = category;
+                            _lastCategory = _category;
+                        }
+
+                        if (_search != _lastSearch)
+                        {
+                            _lastNum = -1;
+                            _lastSearch = _search;
                         }
                     }
 
@@ -230,7 +248,7 @@ public class ModServer : ModSystem
 
     public async Task<string> GetDataForPage() => _currentPage switch
     {
-        "RECIPES" => await _itemLoader.LoadItemList(_currentNum, _category.ToString()),
+        "RECIPES" => await _itemLoader.LoadItemList(_currentNum, _category.ToString(), _search),
         "BEASTIARY" => await _npcLoader.LoadNpcList(_currentNum, _category.ToString()),
         "BEASTIARYINFO" => await _npcPage.LoadData(_currentNum),
         "ITEMINFO" => await _itemPage.LoadData(_currentNum),
