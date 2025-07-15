@@ -11,7 +11,7 @@ namespace TerrariaCompanionMod
             get
             {
                 if (_instance == null)
-                    throw new System.Exception("ItemStorage has not been initialized. Call Init(Mod mod) first.");
+                    throw new System.Exception("NPCStorage has not been initialized. Call Init(Mod mod) first.");
                 return _instance;
             }
         }
@@ -41,6 +41,5 @@ namespace TerrariaCompanionMod
             if (_instance == null)
                 _instance = new NpcStorage(mod);
         }
-
     }
 }

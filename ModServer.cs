@@ -152,14 +152,17 @@ public class ModServer : ModSystem
                             page_name = parts[0];
                             item_num = int.Parse(parts[1]);
 
-                            string[] subParts = parts[2].Split(',', 2);
-
-                            category = subParts[0];
-                            search = subParts.Length > 1 ? subParts[1] : "";
-                            Mod.Logger.Info(receivedMessage);
-                            Mod.Logger.Info(item_num);
-                            Mod.Logger.Info(category);
-                            Mod.Logger.Info(search);
+                            if (parts[2].Contains(","))
+                            {
+                                string[] subParts = parts[2].Split(',', 2);
+                                category = subParts[0];
+                                search = subParts.Length > 1 ? subParts[1] : "";
+                            }
+                            else
+                            {
+                                category = parts[2];
+                                search = "";
+                            }
                         }
 
                         _currentNum = item_num;
@@ -249,7 +252,7 @@ public class ModServer : ModSystem
     public async Task<string> GetDataForPage() => _currentPage switch
     {
         "RECIPES" => await _itemLoader.LoadItemList(_currentNum, _category.ToString(), _search),
-        "BEASTIARY" => await _npcLoader.LoadNpcList(_currentNum, _category.ToString()),
+        "BEASTIARY" => await _npcLoader.LoadNpcList(_currentNum, _search),
         "BEASTIARYINFO" => await _npcPage.LoadData(_currentNum),
         "ITEMINFO" => await _itemPage.LoadData(_currentNum),
         "CHECKLIST" => await _checklistLoader.LoadBosses(),

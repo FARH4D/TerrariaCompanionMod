@@ -113,7 +113,7 @@ namespace TerrariaCompanionMod
             }
         }
 
-        public async Task<string> LoadNpcList(int max, string category)
+        public async Task<string> LoadNpcList(int max, string search)
         {
             return await Task.Run(() =>
             {
@@ -125,16 +125,24 @@ namespace TerrariaCompanionMod
                     return "Error: No NPCs found!";
                 }
 
-                List<Dictionary<string, object>> listToUse;
+                List<Dictionary<string, object>> listToUse = _mainList.Values.ToList();
 
-                listToUse = _mainList.Values.ToList();
+                search = search?.Trim();
 
-                if (max > listToUse.Count) {
+                if (!string.IsNullOrEmpty(search))
+                {
+                    int beforeFilter = listToUse.Count;
+                    listToUse = listToUse.Where(item => item.TryGetValue("name", out var nameObj) && nameObj is string name && name.IndexOf(search, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
+                }
+
+                if (max > listToUse.Count && max != 30)
+                {
                     warning = "MAX";
                     return JsonConvert.SerializeObject(warning);
                 }
 
                 _currentList = listToUse.Skip(Math.Max(0, max - 30)).Take(30).ToList();
+
                 return JsonConvert.SerializeObject(_currentList);
             });
         }
@@ -150,7 +158,6 @@ namespace TerrariaCompanionMod
 
         private string ExtractFirstFrame(Texture2D texture, NPC npc)
         {
-            
             int frameCount = Main.npcFrameCount[npc.type]; // Get number of frames
             if (frameCount <= 0) frameCount = 1; // Ensure we don’t divide by 0
 
@@ -160,8 +167,6 @@ namespace TerrariaCompanionMod
             Texture2D firstFrameTexture = new Texture2D(Main.graphics.GraphicsDevice, frameWidth, frameHeight);
             Microsoft.Xna.Framework.Color[] fullPixels = new Microsoft.Xna.Framework.Color[texture.Width * texture.Height];
             texture.GetData(fullPixels);
-
-
 
             Microsoft.Xna.Framework.Color[] framePixels = new Microsoft.Xna.Framework.Color[frameWidth * frameHeight];
             for (int y = 0; y < frameHeight; y++)
