@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Terraria;
+using Terraria.ID;
 using Terraria.ModLoader;
 
 namespace TerrariaCompanionMod
@@ -36,26 +37,20 @@ namespace TerrariaCompanionMod
                 {"mage", new List<Dictionary<string, object>>()},
                 {"summoner", new List<Dictionary<string, object>>()},
                 {"throwing", new List<Dictionary<string, object>>()},
-                {"bosssummon", new List<Dictionary<string, object>>()},
                 {"helmets", new List<Dictionary<string, object>>()},
                 {"body", new List<Dictionary<string, object>>()},
                 {"legs", new List<Dictionary<string, object>>()},
-                {"Accessories", new List<Dictionary<string, object>>()},
+                {"accessories", new List<Dictionary<string, object>>()},
                 {"pickaxe", new List<Dictionary<string, object>>()},
-                {"Axes", new List<Dictionary<string, object>>()},
-                {"Hammers", new List<Dictionary<string, object>>()},
-                {"Consumables", new List<Dictionary<string, object>>()},
+                {"axes", new List<Dictionary<string, object>>()},
+                {"hammers", new List<Dictionary<string, object>>()},
                 {"ammo", new List<Dictionary<string, object>>()},
-                {"Crafting Materials", new List<Dictionary<string, object>>()},
-                {"Furniture & Decorations", new List<Dictionary<string, object>>()},
-                {"Blocks", new List<Dictionary<string, object>>()},
+                {"blocks", new List<Dictionary<string, object>>()},
                 {"misc", new List<Dictionary<string, object>>()}
             };
         }
 
         public List<Dictionary<string, object>> GetTotalList() => _totalList;
-        public List<Dictionary<string, object>> getVanillaList() => _vanillaList;
-        public List<Dictionary<string, object>> getModdedList() => _moddedList;
 
         public Dictionary<string, List<Dictionary<string, object>>> GetCategorisedItems() => _categorisedItems;
 
@@ -70,33 +65,82 @@ namespace TerrariaCompanionMod
 
         public void CategoriseItem(Dictionary<string, object> itemDict, Item new_item)
         {
+            if (new_item.pick > 0)
+            {
+                _categorisedItems["pickaxe"].Add(itemDict);
+                return;
+            }
+            if (new_item.axe > 0)
+            {
+                _categorisedItems["axes"].Add(itemDict);
+                return;
+            }
+            if (new_item.hammer > 0)
+            {
+                _categorisedItems["hammers"].Add(itemDict);
+                return;
+            }
+            if (new_item.headSlot != -1)
+            {
+                _categorisedItems["helmets"].Add(itemDict);
+                return;
+            }
+            if (new_item.bodySlot != -1)
+            {
+                _categorisedItems["body"].Add(itemDict);
+                return;
+            }
+            if (new_item.legSlot != -1)
+            {
+                _categorisedItems["legs"].Add(itemDict);
+                return;
+            }
+
+            if (new_item.accessory)
+            {
+                _categorisedItems["accessories"].Add(itemDict);
+                return;
+            }
+
             if (new_item.damage > 0)
             {
-                if (new_item.CountsAsClass(DamageClass.Melee) && !(new_item.pick > 0 || new_item.axe > 0 || new_item.hammer > 0)) {
+                if (new_item.CountsAsClass(DamageClass.Melee))
+                {
                     _categorisedItems["melee"].Add(itemDict);
+                    return;
                 }
-                else if (new_item.CountsAsClass(DamageClass.Ranged)){
-                    if (new_item.ammo == 0) {
+                if (new_item.CountsAsClass(DamageClass.Ranged))
+                {
+                    if (new_item.ammo == 0)
                         _categorisedItems["ranged"].Add(itemDict);
-                    }
-                    else _categorisedItems["ammo"].Add(itemDict);
+                    else
+                        _categorisedItems["ammo"].Add(itemDict);
+                    return;
                 }
-                else if (new_item.CountsAsClass(DamageClass.Magic) && !(new_item.pick > 0 || new_item.axe > 0 || new_item.hammer > 0))
+                if (new_item.CountsAsClass(DamageClass.Magic))
+                {
                     _categorisedItems["mage"].Add(itemDict);
-                else if (new_item.CountsAsClass(DamageClass.Summon) && !(new_item.pick > 0 || new_item.axe > 0 || new_item.hammer > 0))
+                    return;
+                }
+                if (new_item.CountsAsClass(DamageClass.Summon))
+                {
                     _categorisedItems["summoner"].Add(itemDict);
-                else if (new_item.CountsAsClass(DamageClass.Throwing) && !(new_item.pick > 0 || new_item.axe > 0 || new_item.hammer > 0))
+                    return;
+                }
+                if (new_item.CountsAsClass(DamageClass.Throwing))
+                {
                     _categorisedItems["throwing"].Add(itemDict);
+                    return;
+                }
             }
-            else if (new_item.headSlot != -1 || new_item.bodySlot != -1 || new_item.legSlot != -1)
+
+            if (new_item.createTile != -1)
             {
-                if (new_item.headSlot !=-1) _categorisedItems["helmets"].Add(itemDict);
-                else if (new_item.bodySlot !=-1) _categorisedItems["body"].Add(itemDict);
-                else if (new_item.legSlot !=-1) _categorisedItems["legs"].Add(itemDict);
+                _categorisedItems["blocks"].Add(itemDict);
+                return;
             }
-            else {
-                _categorisedItems["misc"].Add(itemDict);
-            }
+
+            _categorisedItems["misc"].Add(itemDict);
         }
 
         public void ClearMainList()
@@ -107,20 +151,16 @@ namespace TerrariaCompanionMod
                 {"mage", new List<Dictionary<string, object>>()},
                 {"summoner", new List<Dictionary<string, object>>()},
                 {"throwing", new List<Dictionary<string, object>>()},
-                {"bosssummon", new List<Dictionary<string, object>>()},
                 {"helmets", new List<Dictionary<string, object>>()},
                 {"body", new List<Dictionary<string, object>>()},
                 {"legs", new List<Dictionary<string, object>>()},
-                {"Accessories", new List<Dictionary<string, object>>()},
+                {"accessories", new List<Dictionary<string, object>>()},
                 {"pickaxe", new List<Dictionary<string, object>>()},
-                {"Axes", new List<Dictionary<string, object>>()},
-                {"Hammers", new List<Dictionary<string, object>>()},
-                {"Consumables", new List<Dictionary<string, object>>()},
+                {"axes", new List<Dictionary<string, object>>()},
+                {"hammers", new List<Dictionary<string, object>>()},
                 {"ammo", new List<Dictionary<string, object>>()},
-                {"Crafting Materials", new List<Dictionary<string, object>>()},
-                {"Furniture & Decorations", new List<Dictionary<string, object>>()},
-                {"Blocks", new List<Dictionary<string, object>>()},
-                {"Miscellaneous", new List<Dictionary<string, object>>()}
+                {"blocks", new List<Dictionary<string, object>>()},
+                {"misc", new List<Dictionary<string, object>>()}
             };
         }
 
