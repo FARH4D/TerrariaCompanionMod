@@ -9,6 +9,7 @@ using Newtonsoft.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using TerrariaCompanionMod;
+using System.IO;
 
 public class ModServer : ModSystem
 {
@@ -17,15 +18,16 @@ public class ModServer : ModSystem
     private TcpClient _client;
     private NetworkStream _stream;
     private Thread _listenerThread;
-
-    private bool _running = false;
+    private bool _isRestarting = false;
+    private bool _running;
     public bool IsRunning => _running;
     private int _lastPort = -1;
     private string _currentPage;
     private int _currentNum;
     private string _search;
     private int _lastNum = 0;
-    private string _category = "all";
+    private int[] _trackedItems = new int[0];
+    private string _category = "null";
     private string _lastCategory = "";
     private string _lastSearch = "";
     private bool _firstChecklist = false;
@@ -46,7 +48,6 @@ public class ModServer : ModSystem
     public override void OnWorldLoad()
     {
         _lastNum = 0;
-        _currentPage = "HOME";
         StartServer();
     }
 
@@ -86,6 +87,7 @@ public class ModServer : ModSystem
     {
         int selectedPort = port ?? ServerConfig.Instance.ServerPort;
         _lastPort = selectedPort;
+        _running = false;
         
         _itemLoader = new LoadItems();
         _npcLoader = new LoadNpcs();
@@ -164,6 +166,7 @@ public class ModServer : ModSystem
                                 search = "";
                             }
                         }
+                        Main.NewText(receivedMessage);
 
                         _currentNum = item_num;
                         _category = category;
@@ -185,33 +188,53 @@ public class ModServer : ModSystem
 
                     if (_client != null && _client.Connected)
                     {
-                        if (_currentPage == "HOME")
+                        try
                         {
-                            _firstChecklist = false;
-                            _lastNum = 0;
-
-                            SendData(GetHomeData());
-                        }
-                        else if (_currentPage == "NULL")
-                        {
-                            _lastNum = 0;
-                        }
-                        else
-                        {
-                            if (_currentNum != _lastNum || !_firstChecklist)
+                            if (_currentPage == "HOME")
                             {
-                                _lastNum = _currentNum;
-                                string data = await GetDataForPage();
-                                SendData(data);
-                                _firstChecklist = true;
+                                _firstChecklist = false;
+                                _lastNum = 0;
+
+                                SendData(GetHomeData());
                             }
+                            else if (_currentPage == "NULL")
+                            {
+                                _lastNum = 0;
+                            }
+                            else
+                            {
+                                if (_currentNum != _lastNum || !_firstChecklist)
+                                {
+                                    _lastNum = _currentNum;
+                                    string data = await GetDataForPage();
+                                    SendData(data);
+                                    _firstChecklist = true;
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            if (!ex.Message.Contains("forcibly closed by the remote host"))
+                            {
+                                Mod.Logger.Warn("Unhandled error: " + ex);
+                            }
+                            DisconnectClient();
+                            Main.NewText("disconnected");
+                            RestartServer();
                         }
                     }
                 }
-                catch (Exception e)
+                catch (Exception ex)
                 {
-                    StopServer();
-                    break;
+                    if (!ex.Message.Contains("forcibly closed by the remote host"))
+                    {
+                        Mod.Logger.Warn("Unhandled error in listenerThread: " + ex);
+                    }
+
+                    DisconnectClient();
+                    Main.NewText("Client disconnected. Restarting server.");
+
+                    _ = Task.Run(() => RestartServer()); // Using this method so I can suppress the await warning
                 }
 
                 Thread.Sleep(1000);
@@ -222,9 +245,36 @@ public class ModServer : ModSystem
 
     private void SendData(string data)
     {
-        byte[] buffer = Encoding.UTF8.GetBytes(data + "\n");
-        _stream.Write(buffer, 0, buffer.Length);
-        _stream.Flush();
+        if (_stream == null || !_client.Connected) return;
+
+        try
+        {
+            byte[] buffer = Encoding.UTF8.GetBytes(data + "\n");
+            _stream.Write(buffer, 0, buffer.Length);
+            _stream.Flush();
+        }
+        catch (Exception ex) when (ex is IOException || ex is SocketException || ex is ObjectDisposedException)
+        {
+            // Mod.Logger.Warn($"Exception in the SendData method: {ex.Message}");
+            DisconnectClient();
+
+            Task.Run(() => RestartServer());
+        }
+    }
+
+    private void DisconnectClient()
+    {
+        try
+        {
+            _stream?.Close();
+            _client?.Close();
+            _stream = null;
+            _client = null;
+        }
+        catch (Exception e)
+        {
+            Mod.Logger.Warn("Error while disconnecting client: " + e.Message);
+        }
     }
 
     public void StopServer()
@@ -232,21 +282,28 @@ public class ModServer : ModSystem
         try
         {
             _running = false;
-            _listenerThread?.Join();
             _stream?.Close();
             _client?.Close();
             _server?.Stop();
+
+            _listenerThread?.Join();
         }
         catch (Exception ex)
         {
             Mod.Logger.Error("Error while stopping server: " + ex.Message);
         }
     }
-
     public void RestartServer()
     {
+        if (_isRestarting) return;
+
+        _isRestarting = true;
+
         StopServer();
+        Thread.Sleep(250);
         StartServer();
+
+        _isRestarting = false;
     }
 
     public async Task<string> GetDataForPage() => _currentPage switch
@@ -281,13 +338,19 @@ public class ModServer : ModSystem
 
         string biome = GetPlayerBiome(player);
 
+        if (_currentNum != 0)
+        {
+            _trackedItems = _itemLoader.ingredientNum(player, _currentNum);
+        }
+
         var data = new
         {
             health = new { current = player.statLife, max = player.statLifeMax },
             mana = new { current = player.statMana, max = player.statManaMax },
             player_list = playerNames,
             cosmetics = visualData,
-            biome = biome
+            biome = biome,
+            _trackedItems
         };
 
         return JsonConvert.SerializeObject(data);
