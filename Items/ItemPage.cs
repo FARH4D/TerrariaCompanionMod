@@ -149,6 +149,7 @@ namespace TerrariaCompanionMod
                 var data = new
                 {
                     name = item.Name,
+                    id = item.type,
                     recipes = allRecipes
                 };
 

@@ -75,7 +75,7 @@ namespace TerrariaCompanionMod
 
                                 Texture2D currentTexture;
 
-                                if (new_item.ModItem == null && type == "vanilla") // Vanilla item
+                                if (new_item.ModItem == null && type == "vanilla")
                                 {
                                     if (TextureAssets.Item[new_item.type] == null)
                                     {
@@ -121,7 +121,6 @@ namespace TerrariaCompanionMod
                             });
                         }));
                     }
-                    // Wait for all tasks to complete
                     Task.WhenAll(tasks).ContinueWith(_ =>
                     {
                         storage.SetTotalList();
@@ -189,6 +188,46 @@ namespace TerrariaCompanionMod
 
                 return JsonConvert.SerializeObject(_currentList);
             });
+        }
+
+        public int[] ingredientNum(Player player, int trackedItemId)
+        {
+            Recipe[] recipes = Main.recipe; // Gets all the recipes for the tracked item
+            Recipe matchedRecipe = null; 
+
+            foreach (var recipe in recipes)
+            {
+                if (recipe.createItem != null && recipe.createItem.type == trackedItemId)
+                {
+                    matchedRecipe = recipe; // Currently takes only the first recipe (this will be changed eventually to account for multiple different recipes)
+                    break;
+                }
+            }
+
+            if (matchedRecipe == null)
+            {
+                return new int[0]; // In case there's no recipe found
+            }
+
+            List<int> result = new List<int>();
+
+            foreach (var ingredient in matchedRecipe.requiredItem)
+            {
+                if (ingredient != null && ingredient.type != 0 && ingredient.stack > 0)
+                {
+                    int count = 0;
+                    foreach (var item in player.inventory)
+                    {
+                        if (item != null && !item.IsAir && item.type == ingredient.type)
+                        {
+                            count += item.stack;
+                        }
+                    }
+                    result.Add(count);
+                }
+            }
+            Main.NewText(string.Join(", ", result));
+            return result.ToArray();
         }
 
         private string ConvertTextureToBase64(Texture2D texture)
