@@ -7,6 +7,8 @@ using Terraria.ModLoader;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Terraria.GameContent;
+using Terraria.ID;
+using ReLogic.Content;
 
 namespace TerrariaCompanionMod
 {
@@ -29,14 +31,15 @@ namespace TerrariaCompanionMod
 
                     int bodySlot = player.body;
 
-                    if (bodySlot >= 0 && bodySlot < TextureAssets.ArmorBody.Length)
+                    if (bodySlot > 0 && bodySlot < TextureAssets.ArmorBody.Length)
                     {
                         string bodyPath = $"Terraria/Images/Armor/Armor_{bodySlot}";
-                        Texture2D bodyTex = ModContent.Request<Texture2D>(bodyPath, ReLogic.Content.AssetRequestMode.ImmediateLoad).Value;
+                        Texture2D bodyTex = ModContent.Request<Texture2D>(bodyPath, AssetRequestMode.ImmediateLoad).Value;
 
-                        visualData["BodyArmourTorso"] = ExtractFrameFromGrid(bodyTex, 9, 4, 0, 0);
+                        visualData["BodyArmourTorso"] = ExtractFrameFromGrid(bodyTex, 9, 4, 1, 2);
                         visualData["BodyArmourLeftArm"] = ExtractFrameFromGrid(bodyTex, 9, 4, 2, 0);
                         visualData["BodyArmourRightArm"] = ExtractFrameFromGrid(bodyTex, 9, 4, 2, 2);
+                        visualData["BodyArmourLeftShoulder"] = ExtractFrameFromGrid(bodyTex, 9, 4, 0, 3);
                     }
 
                     if (player.legs > 0 && TextureAssets.ArmorLeg[player.legs]?.IsLoaded == true)
@@ -45,17 +48,49 @@ namespace TerrariaCompanionMod
                         visualData["LegArmour"] = ExtractFirstFrame(legTex, 20);
                     }
 
-                    // if (player.hair >= 0 && TextureAssets.Hair[player.hair]?.IsLoaded == true)
-                    // {
-                    //     Texture2D hairTex = TextureAssets.Hair[player.hair].Value;
-                    //     visualData["Hair"] = ConvertTextureToBase64(hairTex);
-                    // }
+                    int headSlot = player.head;
+
+                    string playerEyes1 = $"Terraria/Images/Player_0_1"; // Gets the white eye texture to stitch it on top of the player model
+                    Texture2D playerEyesTex1 = ModContent.Request<Texture2D>(playerEyes1, AssetRequestMode.ImmediateLoad).Value;
+                    visualData["Eyes1"] = ExtractFirstFrame(playerEyesTex1, 20);
+
+                    string playerEyes2 = $"Terraria/Images/Player_0_2"; // Gets the 'pupil' eye texture to stitch it on top of the player model (so it can be coloured)
+                    Texture2D playerEyesTex2 = ModContent.Request<Texture2D>(playerEyes2, AssetRequestMode.ImmediateLoad).Value;
+                    visualData["Eyes2"] = ExtractFirstFrame(playerEyesTex2, 20);
+
+                    if (headSlot < 0)
+                    {
+                        string hairTexturePath = $"Terraria/Images/Player_Hair_{player.hair}"; // If the player has no helmet equipped, shows hair as normal
+                        Texture2D hairTex = ModContent.Request<Texture2D>(hairTexturePath, AssetRequestMode.ImmediateLoad).Value;
+                        visualData["Hair"] = ExtractFirstFrame(hairTex, 14);
+                    }
+                    else
+                    {
+                        bool drawFullHair = ArmorIDs.Head.Sets.DrawFullHair[headSlot]; // Gets values of whether hair should be normal or hat hair version
+                        bool drawHatHair = ArmorIDs.Head.Sets.DrawHatHair[headSlot];
+
+                        if (drawFullHair)
+                        {
+                            string hairTexturePath = $"Terraria/Images/Player_Hair_{player.hair}";
+                            Texture2D hairTex = ModContent.Request<Texture2D>(hairTexturePath, AssetRequestMode.ImmediateLoad).Value;
+                            visualData["Hair"] = ExtractFirstFrame(hairTex, 14);
+                        }
+                        else if (drawHatHair)
+                        {
+                            string hatHairTexturePath = $"Terraria/Images/Player_HairAlt_{player.hair}";
+                            Texture2D hatHairTex = ModContent.Request<Texture2D>(hatHairTexturePath, AssetRequestMode.ImmediateLoad).Value;
+                            visualData["Hair"] = ExtractFirstFrame(hatHairTex, 14);
+                        }
+                        else
+                        {
+                            visualData["Hair"] = ""; // Returns nothing so the hair just doesn't render on the app (tbh just too lazy to add a proper check for the app)
+                        }
+                    }
 
                     tcs.SetResult(true);
                 }
                 catch (Exception ex)
                 {
-                    Main.NewText($"[TerrariaCompanionMod] Error: {ex.Message}");
                     tcs.SetResult(true);
                 }
             });

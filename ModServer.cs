@@ -166,7 +166,6 @@ public class ModServer : ModSystem
                                 search = "";
                             }
                         }
-                        Main.NewText(receivedMessage);
 
                         _currentNum = item_num;
                         _category = category;
@@ -219,7 +218,7 @@ public class ModServer : ModSystem
                                 Mod.Logger.Warn("Unhandled error: " + ex);
                             }
                             DisconnectClient();
-                            Main.NewText("disconnected");
+                            Main.NewText("Disconnected");
                             RestartServer();
                         }
                     }

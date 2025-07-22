@@ -226,7 +226,6 @@ namespace TerrariaCompanionMod
                     result.Add(count);
                 }
             }
-            Main.NewText(string.Join(", ", result));
             return result.ToArray();
         }
 
