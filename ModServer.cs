@@ -23,7 +23,7 @@ public class ModServer : ModSystem
     public bool IsRunning => _running;
     private int _lastPort = -1;
     private string _currentPage;
-    private int _currentNum;
+    private int _currentNum = 30;
     private string _search;
     private int _lastNum = 0;
     private int[] _trackedItems = new int[0];
@@ -88,7 +88,8 @@ public class ModServer : ModSystem
         int selectedPort = port ?? ServerConfig.Instance.ServerPort;
         _lastPort = selectedPort;
         _running = false;
-        
+
+//////INITIALISING ALL CLASSES FOR SEPARATE MENUS///////////////////////
         _itemLoader = new LoadItems();
         _npcLoader = new LoadNpcs();
         _checklistLoader = new LoadChecklist();
@@ -97,7 +98,7 @@ public class ModServer : ModSystem
         _bossPage = new BossPage();
         _potionLoadouts = new PotionLoadouts();
         _usePotions = new UsePotions();
-
+////////////////////////////////////////////////////////////////////////
         if (_running) return; // Prevent multiple starts
         _running = true;
 
@@ -124,14 +125,14 @@ public class ModServer : ModSystem
                         string receivedMessage = Encoding.UTF8.GetString(buffer, 0, bytesRead).Trim();
 
                         string page_name = receivedMessage;
-                        int item_num = 30;
+                        int item_num = _currentNum;
                         string category = "all";
                         string search = "";
 
                         if (receivedMessage.StartsWith("USELOADOUT_BASE64:"))
                         {
                             Mod.Logger.Info(receivedMessage);
-                            item_num = 0;
+                            item_num = _currentNum;
                             page_name = "NULL";
                             category = "SKIPCONDITION";
 
@@ -342,6 +343,8 @@ public class ModServer : ModSystem
             _trackedItems = _itemLoader.ingredientNum(player, _currentNum);
         }
 
+        bool bossChecklist = checkBossChecklist();
+
         var data = new
         {
             health = new { current = player.statLife, max = player.statLifeMax },
@@ -349,7 +352,8 @@ public class ModServer : ModSystem
             player_list = playerNames,
             cosmetics = visualData,
             biome = biome,
-            _trackedItems
+            _trackedItems,
+            bossChecklist = bossChecklist
         };
 
         return JsonConvert.SerializeObject(data);
@@ -384,4 +388,23 @@ public class ModServer : ModSystem
 
         else return elevation;
     }
+
+    private bool checkBossChecklist()
+    {
+        Mod bossChecklistMod = null;
+        try
+        {
+            bossChecklistMod = ModLoader.GetMod("BossChecklist");
+            return true;
+        }
+        catch (KeyNotFoundException)
+        {
+            return false;
+        }
+        catch (Exception ex)
+        {
+            return false;
+        }
+    }
+
 }

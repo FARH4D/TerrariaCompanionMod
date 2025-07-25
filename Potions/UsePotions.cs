@@ -2,6 +2,7 @@ using Terraria;
 using Terraria.ModLoader;
 using System.Collections.Generic;
 using Terraria.ID;
+using Terraria.Audio;
 
 namespace TerrariaCompanionMod
 {
@@ -41,6 +42,7 @@ namespace TerrariaCompanionMod
                     }
                 }
             }
+            SoundEngine.PlaySound(SoundID.Item3, player.position);
         }
     }
 }

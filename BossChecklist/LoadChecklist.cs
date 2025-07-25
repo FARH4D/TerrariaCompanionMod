@@ -22,7 +22,6 @@ namespace TerrariaCompanionMod
                 try {
                     bossChecklistMod = ModLoader.GetMod("BossChecklist");
                 } catch (KeyNotFoundException) {
-                    Main.NewText("no boss checklist");
                     return JsonConvert.SerializeObject("No BossChecklist");
                 } catch (Exception ex) {
                     return JsonConvert.SerializeObject("Error checking for BossChecklist");

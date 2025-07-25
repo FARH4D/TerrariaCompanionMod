@@ -36,9 +36,7 @@ namespace TerrariaCompanionMod
 
                 List<Task> mainThreadTasks = new List<Task>();
 
-                var groupedByItem = allDropInfo
-                .GroupBy(info => info.itemId)
-                .Select(group =>
+                var groupedByItem = allDropInfo.GroupBy(info => info.itemId).Select(group =>
                 {
                     var match = group.FirstOrDefault(info => MatchesCurrentDifficulty(info));
                     if (match.itemId == 0 && match.dropRate == 0f)
@@ -48,7 +46,6 @@ namespace TerrariaCompanionMod
 
                 foreach (var info in groupedByItem)
                 {
-
                     var tcs = new TaskCompletionSource<bool>();
                     Main.QueueMainThreadAction(() =>
                     {
