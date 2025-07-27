@@ -15,6 +15,11 @@ Mods: {
 					Label: Local IP Address
 					Tooltip: Your local IP address on the network (used for connecting your mobile app)
 				}
+
+				LocalIPAddressDisplay: {
+					Label: Local IP Address
+					Tooltip: Your local IP address on the network (used for connecting your mobile app)
+				}
 			}
 		}
 	}
