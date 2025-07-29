@@ -60,7 +60,7 @@ namespace TerrariaCompanionMod
 
                     if (headSlot < 0)
                     {
-                        string hairTexturePath = $"Terraria/Images/Player_Hair_{player.hair}"; // If the player has no helmet equipped, shows hair as normal
+                        string hairTexturePath = $"Terraria/Images/Player_Hair_{player.hair + 1}"; // If the player has no helmet equipped, shows hair as normal
                         Texture2D hairTex = ModContent.Request<Texture2D>(hairTexturePath, AssetRequestMode.ImmediateLoad).Value;
                         visualData["Hair"] = ExtractFirstFrame(hairTex, 14);
                     }
@@ -71,13 +71,13 @@ namespace TerrariaCompanionMod
 
                         if (drawFullHair)
                         {
-                            string hairTexturePath = $"Terraria/Images/Player_Hair_{player.hair}";
+                            string hairTexturePath = $"Terraria/Images/Player_Hair_{player.hair + 1}";
                             Texture2D hairTex = ModContent.Request<Texture2D>(hairTexturePath, AssetRequestMode.ImmediateLoad).Value;
                             visualData["Hair"] = ExtractFirstFrame(hairTex, 14);
                         }
                         else if (drawHatHair)
                         {
-                            string hatHairTexturePath = $"Terraria/Images/Player_HairAlt_{player.hair}";
+                            string hatHairTexturePath = $"Terraria/Images/Player_HairAlt_{player.hair + 1}";
                             Texture2D hatHairTex = ModContent.Request<Texture2D>(hatHairTexturePath, AssetRequestMode.ImmediateLoad).Value;
                             visualData["Hair"] = ExtractFirstFrame(hatHairTex, 14);
                         }
