@@ -9,7 +9,7 @@ This mod features many tools, such as an Item page and Recipe Browsing, Item Tra
 [![Watch the showcase video!](https://img.youtube.com/vi/IFwg-NQ2cZE/0.jpg)](https://www.youtube.com/watch?v=IFwg-NQ2cZE)
 
 The youtube video above shows all the features in more depth, however screenshots and a showcase of a few of the features of the app can be found below:
-![Companion App Home Page](https://github.com/FARH4D/TerrariaCompanionMod/Showcase/README.md)
+![Companion App Home Page](https://github.com/FARH4D/TerrariaCompanionMod/blob/main/Showcase/README.md)
 
 ## Instructions
 1) Go to the TModLoader Workshop on Steam and install the Terraria Companion Mod, or manually install the latest release on this repo.
