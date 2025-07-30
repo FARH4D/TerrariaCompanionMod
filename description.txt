@@ -1,1 +1,9 @@
-A Mod for tModLoader that allows you to connect to the Terraria Companion App!
+The Terraria Companion Mod allows you to connect to my Terraria Companion App (currently only available on Android) to sync your PC and Mobile, allowing you to use a variety of tools and information. This works in both singleplayer and multiplayer.
+
+This mod features many tools, such as an Item page and Recipe Browsing, Item Tracking, a Beastiary, Boss Checklist and much more!
+
+Find a more in-depth explanation on how to use this mod on the Steam Workshop page or the Github repo: https://github.com/FARH4D/Terraria-Companion-App
+
+For full functionality please ensure you have the Boss Checklist mod from JavidPack installed.
+
+Initial loading times when launching Terraria and entering a world may be a bit slower, because the mod needs to index all the items and NPCs, so please be patient while this happens.
