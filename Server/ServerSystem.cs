@@ -61,7 +61,22 @@ public class ServerSystem : ModSystem
 
     private static bool IsBadAdapter(string ip)
     {
-        // This is to get rid of IP ranges like Docker, NordVPN, VirtualBox that would give the user the incorrect IP
-        return ip.StartsWith("10.5.") || ip.StartsWith("192.168.56."); // I'll probably need to add more eventually
+        return
+            ip.StartsWith("10.5.") ||                 // Docker default bridge
+            ip.StartsWith("10.8.") ||                 // OpenVPN / Tunnelblick default
+            ip.StartsWith("10.9.") ||                 // ZeroTier / VPN
+            ip.StartsWith("10.10.") ||                // Tailscale (old)
+            ip.StartsWith("100.64.") ||               // CGNAT / Tailscale
+            ip.StartsWith("172.16.") ||               // Often used by Docker / VPNs
+            ip.StartsWith("172.17.") ||               // Docker default
+            ip.StartsWith("172.18.") ||               // Docker bridge networks
+            ip.StartsWith("172.19.") ||               // Docker networks
+            ip.StartsWith("172.20.") ||               // Docker / Hyper-V
+            ip.StartsWith("192.168.56.") ||           // VirtualBox Host-Only
+            ip.StartsWith("192.168.137.") ||          // VMware VMnet1 / ICS (Internet Connection Sharing)
+            ip.StartsWith("192.168.100.") ||          // QEMU / Tailscale / Hyper-V Switch
+            ip.StartsWith("169.254.") ||              // Link-local (invalid for LAN)
+            ip.StartsWith("0.") ||                    // Invalid / misconfigured
+            ip.Equals("127.0.0.1");                   // Loopback
     }
 }
